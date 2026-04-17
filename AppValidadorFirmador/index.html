@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador y Firmador — Tesorería Comfacauca</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <style>
+        /* ── Controles de firma ── */
+        .signature-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            width: 100%;
+            max-width: 640px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .control-group input[type="file"],
+        .control-group input[type="text"] {
+            flex: 1;
+            min-width: 0;          /* evita desbordamiento en flex */
+            background: #f8f9fa;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            color: #333;
+            padding: 8px 11px;
+            font-size: 13px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            transition: border-color 0.2s;
+            outline: none;
+            width: auto;           /* no heredar width:185px de button */
+        }
+
+        .control-group input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.15);
+        }
+
+        .control-group input[type="file"] { cursor: pointer; }
+
+        .control-group input[type="file"]::file-selector-button {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            color: #555;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-right: 8px;
+        }
+
+        /* FIX PRINCIPAL: el global CSS aplica width:185px a todos los button.
+           Aquí lo sobreescribimos específicamente para el botón de limpiar firma. */
+        button.btn-clear-sig {
+            background: #f8f9fa;
+            border: 1px solid #ced4da;
+            color: #888;
+            padding: 6px 10px;
+            width: auto !important;
+            min-width: unset;
+            flex-shrink: 0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        button.btn-clear-sig:hover {
+            border-color: #dc3545;
+            color: #dc3545;
+            background: #fff5f5;
+        }
+
+        /* ── Drop zone ── */
+        .drop-zone {
+            width: 52%;
+            min-width: 280px;
+        }
+
+        /* ── Summary cards ── */
+        .summary {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .summary-card {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 14px 24px;
+            text-align: center;
+            min-width: 110px;
+        }
+
+        .summary-card h3 {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .summary-card p { font-size: 28px; font-weight: 700; }
+
+        .summary-card.correct { border-color: #28a745; }
+        .summary-card.correct p { color: #28a745; }
+        .summary-card.error   { border-color: #dc3545; }
+        .summary-card.error p { color: #dc3545; }
+        .summary-card.ignored { border-color: #adb5bd; }
+        .summary-card.ignored p { color: #868e96; }
+
+        /* ── Results list ── */
+        .results-container { width: 100%; }
+
+        .results-list {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 8px;
+            padding: 0;
+        }
+
+        .results-list li {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .result-correct { background: #d4edda; color: #155724; }
+        .result-error   { background: #f8d7da; color: #721c24; }
+        .result-ignored { background: #e2e3e5; color: #383d41; }
+
+        #status {
+            font-size: 13px;
+            color: #555;
+            padding: 8px 0;
+            min-height: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+</head>
+<body>
+    <button class="btn-home" onclick="goToHome()">« Página Inicio</button>
+
+    <div class="container">
+        <h1>VALIDADOR Y FIRMADOR DE COMPROBANTES</h1>
+        <p style="color:#666; font-size:13px; margin-bottom:20px; text-align:center;">
+            Valida automáticamente los comprobantes, aplica firma y fecha de vencimiento.
+        </p>
+
+        <!-- Controles firma -->
+        <div class="signature-controls">
+            <div class="control-group">
+                <label>✍️ Imagen de Firma</label>
+                <div class="input-row">
+                    <input type="file" id="firma-input" accept="image/png,image/jpeg">
+                    <button type="button" class="btn-clear-sig" id="btn-clear-firma" title="Quitar firma">🗑️</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>📅 Fecha de Vencimiento</label>
+                <div class="input-row">
+                    <input type="text" id="textoExtra-input" placeholder="EJEMPLO: VTO DIC 15-2030">
+                </div>
+            </div>
+        </div>
+
+        <!-- DRAG & DROP con nube animada -->
+        <div id="drop-zone" class="upload-section drop-zone">
+            <div class="cloud-wrap">
+                <svg class="cloud-svg" width="90" height="58" viewBox="0 0 90 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="45" cy="38" rx="36" ry="18" fill="#c8e6fa"/>
+                    <ellipse cx="45" cy="36" rx="36" ry="18" fill="#d6eeff"/>
+                    <ellipse cx="28" cy="30" rx="18" ry="15" fill="#d6eeff"/>
+                    <ellipse cx="55" cy="26" rx="20" ry="17" fill="#d6eeff"/>
+                    <ellipse cx="38" cy="22" rx="16" ry="14" fill="#e8f5ff"/>
+                    <ellipse cx="52" cy="20" rx="11" ry="8" fill="#f0f9ff" opacity="0.7"/>
+                </svg>
+                <div class="cloud-bubbles">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            <p class="upload-title">Arrastra tus comprobantes PDF aquí</p>
+            <p class="upload-sub">o haz clic para seleccionar · puedes agregar en varias tandas</p>
+            <input type="file" id="file-input" multiple accept="application/pdf" hidden>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="buttons">
+            <button id="btn-validate" class="btn-success" disabled>⚙ Procesar Archivos</button>
+            <button id="btn-clear"    class="btn-danger">🗑️ Limpiar PDFs</button>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container" id="progress-container" style="display:none;">
+            <p>Procesando: <span id="progress-text">0/0</span></p>
+            <progress id="progress-bar" value="0" max="100"></progress>
+        </div>
+
+        <div id="status"></div>
+
+        <!-- Resumen -->
+        <div class="summary">
+            <div class="summary-card correct">
+                <h3>Correctos</h3>
+                <p id="count-correct">0</p>
+            </div>
+            <div class="summary-card error">
+                <h3>Con Error</h3>
+                <p id="count-error">0</p>
+            </div>
+            <div class="summary-card ignored">
+                <h3>Ignorados</h3>
+                <p id="count-ignored">0</p>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <div class="results-container">
+            <h2>Detalle de Resultados</h2>
+            <ul id="results-list" class="results-list"></ul>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p>Copyright © | Popayán 2025</p>
+            <p>Tesorería Comfacauca</p>
+            <p class="signature">Desarrollo: Wilmar Andrés Gómez</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

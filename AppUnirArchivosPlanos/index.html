@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unir Archivos Planos — Tesorería Comfacauca</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <style>
+        .file-list-box {
+            width: 52%;
+            min-width: 280px;
+            margin-bottom: 18px;
+        }
+        #fileCount { font-size:13px; color:#555; margin-bottom:8px; text-align:center; font-style:italic; }
+
+        #fileList {
+            list-style:none;
+            display:flex; flex-direction:column; gap:5px;
+            max-height:280px; overflow-y:auto;
+        }
+
+        .file-item {
+            display:flex; align-items:center; gap:10px;
+            padding:8px 12px;
+            background:#f8f9fa; border:1px solid #dee2e6;
+            border-radius:7px; font-size:13px; color:#333;
+        }
+        .file-index { font-size:11px; color:#aaa; min-width:20px; text-align:right; font-weight:700; }
+        .file-item-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .file-size { font-size:11px; color:#aaa; flex-shrink:0; }
+        .btn-remove-file {
+            background:none; border:none; color:#ccc; font-size:16px;
+            cursor:pointer; width:auto; padding:0 3px; line-height:1;
+            transition:color 0.2s;
+        }
+        .btn-remove-file:hover { color:#dc3545; }
+
+        #downloadLink {
+            display:none;
+            background: linear-gradient(135deg,#28a745,#20c997);
+            color:#fff; padding:12px 28px; border-radius:8px;
+            text-decoration:none; font-size:14px; font-weight:bold;
+            box-shadow:0 4px 12px rgba(40,167,69,0.3);
+            transition:all 0.25s ease;
+            margin-top:4px;
+        }
+        #downloadLink:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(40,167,69,0.4); }
+
+        #resultInfo { font-size:12px; color:#888; margin-top:8px; text-align:center; font-style:italic; }
+    </style>
+</head>
+<body>
+    <button class="btn-home" onclick="goToHome()">« Página Inicio</button>
+
+    <div class="container">
+        <h1>UNIR ARCHIVOS PLANOS</h1>
+        <p style="color:#666; font-size:13px; margin-bottom:20px; text-align:center;">
+            Combina múltiples archivos de texto en un único archivo. Puedes agregar archivos en varias selecciones.
+        </p>
+
+        <!-- DRAG & DROP con nube animada -->
+        <div class="upload-section" id="dropZone">
+            <div class="cloud-wrap">
+                <svg class="cloud-svg" width="90" height="58" viewBox="0 0 90 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="45" cy="38" rx="36" ry="18" fill="#c8e6fa"/>
+                    <ellipse cx="45" cy="36" rx="36" ry="18" fill="#d6eeff"/>
+                    <ellipse cx="28" cy="30" rx="18" ry="15" fill="#d6eeff"/>
+                    <ellipse cx="55" cy="26" rx="20" ry="17" fill="#d6eeff"/>
+                    <ellipse cx="38" cy="22" rx="16" ry="14" fill="#e8f5ff"/>
+                    <ellipse cx="52" cy="20" rx="11" ry="8" fill="#f0f9ff" opacity="0.7"/>
+                </svg>
+                <div class="cloud-bubbles">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            <p class="upload-title">Arrastra los archivos aquí</p>
+            <p class="upload-sub">Puedes seleccionar múltiples archivos a la vez</p>
+
+            <label class="file-label">
+                + Agregar archivos
+                <input type="file" id="fileInput" multiple accept=".txt,text/plain">
+            </label>
+        </div>
+
+        <div class="file-list-box">
+            <div id="fileCount">No hay archivos seleccionados</div>
+            <ul id="fileList"></ul>
+        </div>
+
+        <div class="buttons">
+            <button id="combineButton" class="btn-success" disabled>🔗 Unir Archivos</button>
+            <button id="clearButton"   class="btn-danger">✕ Limpiar todo</button>
+        </div>
+
+        <a id="downloadLink" href="#">⬇ Descargar Archivo Unificado</a>
+        <div id="resultInfo"></div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p>Copyright © | Popayán 2025</p>
+            <p>Tesorería Comfacauca</p>
+            <p class="signature">Desarrollo: Wilmar Andrés Gómez</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

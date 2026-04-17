@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validar Archivo Plano — Tesorería Comfacauca</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <style>
+        .validation-message {
+            width: 100%;
+            padding: 11px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            min-height: 20px;
+            text-align: center;
+        }
+        .validation-message.success { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+        .validation-message.error   { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+
+        .stats { display:flex; gap:14px; font-size:12px; margin-bottom:10px; flex-wrap:wrap; justify-content:center; }
+        .stat-ok  { color:#28a745; font-weight:600; }
+        .stat-err { color:#dc3545; font-weight:600; }
+
+        #output {
+            width:100%; max-height:400px; overflow-y:auto;
+            display:flex; flex-direction:column; gap:5px;
+        }
+
+        .result-item {
+            padding:9px 14px; border-radius:6px; font-size:12px;
+            font-family:'Courier New', monospace;
+            display:flex; flex-wrap:wrap; gap:6px; align-items:baseline;
+        }
+        .result-ok    { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+        .result-error { background:#fff3cd; color:#856404; border:1px solid #ffeeba; }
+
+        .line-num     { font-weight:700; color:#dc3545; min-width:75px; flex-shrink:0; }
+        .line-content { color:#555; word-break:break-all; flex:1; }
+        .line-chars   { color:#e67e22; font-size:11px; width:100%; }
+        .line-chars code { background:rgba(230,126,34,0.12); padding:1px 5px; border-radius:3px; }
+
+        .highlight { color:#dc3545; font-weight:bold; }
+    </style>
+</head>
+<body>
+    <button class="btn-home" onclick="goToHome()">« Página Inicio</button>
+
+    <div class="container">
+        <h1>VALIDAR ARCHIVO PLANO PARA PAGO</h1>
+        <p style="color:#666; font-size:13px; margin-bottom:20px; text-align:center;">
+            Verifica que el archivo no tenga caracteres inválidos antes de cargarlo en BANCOLOMBIA.
+        </p>
+
+        <!-- DRAG & DROP con nube animada -->
+        <div class="upload-section" id="dropZone">
+            <div class="cloud-wrap">
+                <svg class="cloud-svg" width="90" height="58" viewBox="0 0 90 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="45" cy="38" rx="36" ry="18" fill="#c8e6fa"/>
+                    <ellipse cx="45" cy="36" rx="36" ry="18" fill="#d6eeff"/>
+                    <ellipse cx="28" cy="30" rx="18" ry="15" fill="#d6eeff"/>
+                    <ellipse cx="55" cy="26" rx="20" ry="17" fill="#d6eeff"/>
+                    <ellipse cx="38" cy="22" rx="16" ry="14" fill="#e8f5ff"/>
+                    <ellipse cx="52" cy="20" rx="11" ry="8" fill="#f0f9ff" opacity="0.7"/>
+                </svg>
+                <div class="cloud-bubbles">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            <p class="upload-title">Selecciona el archivo .txt</p>
+            <p class="upload-sub">Arrastra o haz clic para buscar</p>
+
+            <label class="file-label">
+                Seleccionar archivo
+                <input type="file" id="fileInput" accept=".txt">
+            </label>
+            <div class="file-name" id="fileName">No hay archivos seleccionados</div>
+        </div>
+
+        <div class="buttons">
+            <button id="processButton" class="btn-success" disabled>🔎 Validar Archivo</button>
+            <button id="clearButton"   class="btn-danger">✕ Limpiar</button>
+        </div>
+
+        <div class="stats" id="stats"></div>
+        <div id="validationMessage" class="validation-message"></div>
+        <div id="output"></div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p>Copyright © | Popayán 2025</p>
+            <p>Tesorería Comfacauca</p>
+            <p class="signature">Desarrollo: Wilmar Andrés Gómez</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

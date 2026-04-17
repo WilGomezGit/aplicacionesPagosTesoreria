@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscripción de Cuentas Bancarias — Tesorería Comfacauca</title>
+    <link rel="stylesheet" href="../css/global.css">
+</head>
+<body>
+    <button class="btn-home" onclick="goToHome()">« Página Inicio</button>
+
+    <div class="container">
+        <h1>INSCRIPCIÓN DE CUENTAS BANCARIAS</h1>
+
+        <!-- DRAG & DROP con nube animada -->
+        <div class="upload-section" id="dropZone">
+            <div class="cloud-wrap">
+                <svg class="cloud-svg" width="90" height="58" viewBox="0 0 90 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="45" cy="38" rx="36" ry="18" fill="#c8e6fa"/>
+                    <ellipse cx="45" cy="36" rx="36" ry="18" fill="#d6eeff"/>
+                    <ellipse cx="28" cy="30" rx="18" ry="15" fill="#d6eeff"/>
+                    <ellipse cx="55" cy="26" rx="20" ry="17" fill="#d6eeff"/>
+                    <ellipse cx="38" cy="22" rx="16" ry="14" fill="#e8f5ff"/>
+                    <ellipse cx="52" cy="20" rx="11" ry="8" fill="#f0f9ff" opacity="0.7"/>
+                </svg>
+                <div class="cloud-bubbles">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            <p class="upload-title">Arrastra tu archivo aquí</p>
+            <p class="upload-sub">o haz clic para seleccionar · .txt · .xlsx · .xls · .ods</p>
+
+            <label class="file-label">
+                Seleccionar archivo
+                <input type="file" id="fileInput" accept=".txt,.xlsx,.xls,.ods">
+            </label>
+            <div class="file-name" id="fileName">No hay archivos seleccionados</div>
+        </div>
+
+        <div class="buttons">
+            <button id="btnProcesar" class="btn-success" disabled>⚙ Procesar</button>
+            <button id="btnCancelar" class="btn-danger"  disabled>✕ Cancelar</button>
+        </div>
+
+        <div id="errorMessage" class="message-bar"></div>
+
+        <div class="buttons" id="downloadButtons" style="display:none;">
+            <button id="btnExcel" class="btn-primary" disabled>📊 Descargar Excel</button>
+            <button id="btnSiesa" class="btn-primary" disabled>📋 Descargar Formato Siesa</button>
+            <button id="btnPlano" class="btn-primary" disabled>📄 Descargar Archivo Plano</button>
+        </div>
+
+        <h2>Datos Procesados</h2>
+        <div class="table-container">
+            <table id="dataTable">
+                <thead id="dataHead"></thead>
+                <tbody id="dataBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p>Copyright © | Popayán 2025</p>
+            <p>Tesorería Comfacauca</p>
+            <p class="signature">Desarrollo: Wilmar Andrés Gómez</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.2/xlsx.full.min.js"></script>
+    <script src="../js/core.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
