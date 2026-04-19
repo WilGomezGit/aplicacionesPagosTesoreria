@@ -1,72 +1,93 @@
 <!DOCTYPE html>
 <html lang="es">
-    <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Procesador de Archivos - Tesoreria Comfacauca</title>
-        <link rel="stylesheet" href="css/global.css">
-        <style>
-                    .home-header{text-align:center;margin-bottom:10px;}
-                    .home-header h1{font-size:26px;color:#2c3e50;margin-bottom:6px;}
-                    .home-header p{font-size:14px;color:#7f8c8d;}
-                    .cards-grid{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:22px;padding:0 10px;}
-                    .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;width:215px;padding:22px 16px 18px;text-align:center;text-decoration:none;color:#333;transition:all 0.3s ease;box-shadow:0 2px 8px rgba(0,0,0,0.08);display:flex;flex-direction:column;align-items:center;gap:12px;}
-                    .card:hover{transform:translateY(-6px);box-shadow:0 10px 30px rgba(52,152,219,0.25);border-color:#3498db;}
-                    .card-icon{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;}
-                    .card-icon--blue{background:linear-gradient(135deg,#3498db,#2980b9);color:white;}
-                    .card-icon--green{background:linear-gradient(135deg,#2ecc71,#27ae60);color:white;}
-                    .card-icon--orange{background:linear-gradient(135deg,#f39c12,#e67e22);color:white;}
-                    .card-icon--purple{background:linear-gradient(135deg,#8e44ad,#9b59b6);color:white;}
-                    .card-icon--teal{background:linear-gradient(135deg,#16a085,#1abc9c);color:white;}
-                    .card-title{font-size:14px;font-weight:bold;color:#2c3e50;line-height:1.3;}
-                    .card-desc{font-size:11px;color:#95a5a6;line-height:1.45;}
-                    @media(max-width:768px){.cards-grid{flex-direction:column;align-items:center;}.card{width:90%;max-width:300px;}}
-                </style>
-    </head>
-    <body>
-            <div class="container container--home" style="max-width:1050px;">
-                        <div class="home-header">
-                                        <h1>&#128203; Procesador de Archivos</h1>
-                                    <p>Tesoreria Comfacauca &mdash; Selecciona una opcion para comenzar</p>
-                        </div>div>
-                    <div class="cards-grid">
-                                <a href="CuentasBancarias/index.html" class="card">
-                                                <div class="card-icon card-icon--blue">&#127974;</div>div>
-                                                <div class="card-title">Inscripcion de Cuentas</div>div>
-                                                <div class="card-desc">Carga el archivo plano y genera Excel, Formato Siesa o Archivo de Inscripcion</div>div>
-                                </a>a>
-                                <a href="AppValidarArchivoPlanoParaPago/validar.html" class="card">
-                                                <div class="card-icon card-icon--green">&#9989;</div>div>
-                                                <div class="card-title">Validar Archivo Plano para Pago</div>div>
-                                                <div class="card-desc">Verifica que el archivo no tenga caracteres invalidos antes de cargarlo</div>div>
-                                </a>a>
-                                <a href="AppUnirArchivosPlanos/index.html" class="card">
-                                                <div class="card-icon card-icon--orange">&#128206;</div>div>
-                                                <div class="card-title">Unir Archivos Planos</div>div>
-                                                <div class="card-desc">Combina multiples archivos de texto en un solo archivo unificado</div>div>
-                                </a>a>
-                                <a href="AppValidadorFirmador/index.html" class="card">
-                                                <div class="card-icon card-icon--purple">&#9997;</div>div>
-                                                <div class="card-title">Validador y Firmador</div>div>
-                                                <div class="card-desc">Valida y aplica firma/fecha de vencimiento a los comprobantes PDF</div>div>
-                                </a>a>
-                                <a href="AppValidadorBancos/index.html" class="card">
-                                                <div class="card-icon card-icon--teal">&#127963;</div>div>
-                                                <div class="card-title">Validador Archivos Bancos</div>div>
-                                                <div class="card-desc">Verifica comprobante y cuenta bancaria correcta en archivos .txt</div>div>
-                                </a>a>
-                    </div>div>
-            </div>
-        <footer>
-                    <div class="footer-content">
-                                    <p>Copyright &copy; | Popayan 2025</p>p>
-                                    <p>Tesoreria Comfacauca</p>p>
-                                    <p class="signature">Desarrollo: Wilmar Andres Gomez</p>p>
-                    </div>div>
-        </footer>
-    </body>
-</html>html>
-        </footer></p></h1>
-    </body>
-        </style></title>
-    </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesador de Archivos - Tesoreria Comfacauca</title>
+    <link rel="stylesheet" href="css/global.css">
+    <style>
+        .home-header { text-align:center; margin-bottom:10px; }
+        .home-header h1 { font-size:26px; color:#2c3e50; margin-bottom:6px; }
+        .home-header p  { font-size:14px; color:#7f8c8d; }
+        .cards-grid {
+            display:flex; justify-content:center; gap:20px;
+            flex-wrap:wrap; margin-top:22px; padding:0 10px;
+        }
+        .card {
+            background:#fff; border:1px solid #e0e0e0; border-radius:12px;
+            width:215px; padding:22px 16px 18px; text-align:center;
+            text-decoration:none; color:#333; transition:all 0.3s ease;
+            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+            display:flex; flex-direction:column; align-items:center; gap:12px;
+        }
+        .card:hover {
+            transform:translateY(-6px);
+            box-shadow:0 10px 30px rgba(52,152,219,0.25);
+            border-color:#3498db;
+        }
+        .card-icon {
+            width:52px; height:52px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center; font-size:24px;
+        }
+        .card-icon--blue   { background:linear-gradient(135deg,#3498db,#2980b9); color:white; }
+        .card-icon--green  { background:linear-gradient(135deg,#2ecc71,#27ae60); color:white; }
+        .card-icon--orange { background:linear-gradient(135deg,#f39c12,#e67e22); color:white; }
+        .card-icon--purple { background:linear-gradient(135deg,#8e44ad,#9b59b6); color:white; }
+        .card-icon--teal   { background:linear-gradient(135deg,#16a085,#1abc9c); color:white; }
+        .card-title { font-size:14px; font-weight:bold; color:#2c3e50; line-height:1.3; }
+        .card-desc  { font-size:11px; color:#95a5a6; line-height:1.45; }
+        @media(max-width:768px) {
+            .cards-grid { flex-direction:column; align-items:center; }
+            .card { width:90%; max-width:300px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container container--home" style="max-width:1050px;">
+        <div class="home-header">
+            <h1>&#128203; Procesador de Archivos</h1>
+            <p>Tesoreria Comfacauca &mdash; Selecciona una opcion para comenzar</p>
+        </div>
+        <div class="cards-grid">
+
+            <a href="CuentasBancarias/index.html" class="card">
+                <div class="card-icon card-icon--blue">&#127974;</div>
+                <div class="card-title">Inscripcion de Cuentas</div>
+                <div class="card-desc">Carga el archivo plano y genera Excel, Formato Siesa o Archivo de Inscripcion</div>
+            </a>
+
+            <a href="AppValidarArchivoPlanoParaPago/validar.html" class="card">
+                <div class="card-icon card-icon--green">&#9989;</div>
+                <div class="card-title">Validar Archivo Plano para Pago</div>
+                <div class="card-desc">Verifica que el archivo no tenga caracteres invalidos antes de cargarlo</div>
+            </a>
+
+            <a href="AppUnirArchivosPlanos/index.html" class="card">
+                <div class="card-icon card-icon--orange">&#128206;</div>
+                <div class="card-title">Unir Archivos Planos</div>
+                <div class="card-desc">Combina multiples archivos de texto en un solo archivo unificado</div>
+            </a>
+
+            <a href="AppValidadorFirmador/index.html" class="card">
+                <div class="card-icon card-icon--purple">&#9997;</div>
+                <div class="card-title">Validador y Firmador</div>
+                <div class="card-desc">Valida y aplica firma/fecha de vencimiento a los comprobantes PDF</div>
+            </a>
+
+            <a href="AppValidadorBancos/index.html" class="card">
+                <div class="card-icon card-icon--teal">&#127963;</div>
+                <div class="card-title">Validador Archivos Bancos</div>
+                <div class="card-desc">Verifica comprobante y cuenta bancaria correcta en archivos .txt</div>
+            </a>
+
+        </div>
+    </div>
+    <footer>
+        <div class="footer-content">
+            <p>Copyright &copy; | Popayan 2025</p>
+            <p>Tesoreria Comfacauca</p>
+            <p class="signature">Desarrollo: Wilmar Andres Gomez</p>
+        </div>
+    </footer>
+</body>
+</html>
