@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador Archivos Bancos — Tesorería Comfacauca</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <button class="btn-home" onclick="goToHome()">« Página Inicio</button>
+
+    <div class="container">
+        <h1>VALIDADOR DE ARCHIVOS BANCOS</h1>
+        <p style="color:#666; font-size:13px; margin-bottom:20px; text-align:center;">
+            Valida que cada archivo contenga el comprobante y la cuenta bancaria correcta
+            según las reglas contables.
+        </p>
+
+        <!-- Zona de carga con nube animada -->
+        <div class="upload-section" id="dropZone">
+            <div class="cloud-wrap">
+                <svg class="cloud-svg" width="90" height="58" viewBox="0 0 90 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="45" cy="38" rx="36" ry="18" fill="#c8e6fa"/>
+                    <ellipse cx="45" cy="36" rx="36" ry="18" fill="#d6eeff"/>
+                    <ellipse cx="28" cy="30" rx="18" ry="15" fill="#d6eeff"/>
+                    <ellipse cx="55" cy="26" rx="20" ry="17" fill="#d6eeff"/>
+                    <ellipse cx="38" cy="22" rx="16" ry="14" fill="#e8f5ff"/>
+                    <ellipse cx="52" cy="20" rx="11" ry="8"  fill="#f0f9ff" opacity="0.7"/>
+                </svg>
+                <div class="cloud-bubbles">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            <p class="upload-title">Arrastra los archivos .txt aquí</p>
+            <p class="upload-sub">o haz clic para seleccionar · puedes agregar en varias tandas</p>
+            <label class="file-label">
+                + Seleccionar archivos
+                <input type="file" id="fileInput" multiple accept=".txt,text/plain">
+            </label>
+            <div class="file-name" id="fileCount">No hay archivos seleccionados</div>
+        </div>
+
+        <!-- Lista de archivos cargados -->
+        <div class="files-grid" id="filesGrid"></div>
+
+        <!-- Botones -->
+        <div class="buttons">
+            <button id="btnValidar" class="btn-success" disabled onclick="validar()">✔ Validar archivos</button>
+            <button id="btnReporte" class="btn-primary" onclick="descargarReporte()">📥 Descargar reporte</button>
+            <button class="btn-danger" onclick="limpiar()">🧹 Limpiar todo</button>
+        </div>
+
+        <!-- Progreso -->
+        <div class="progress-container" id="progressContainer" style="display:none;">
+            <p>Validando: <span id="progressText">0/0</span></p>
+            <progress id="progressBar" value="0" max="100"></progress>
+        </div>
+
+        <!-- Resumen -->
+        <div class="summary" id="summary" style="display:none;">
+            <div class="summary-card ok">
+                <h3>Correctos</h3>
+                <p id="countOk">0</p>
+            </div>
+            <div class="summary-card err">
+                <h3>Con Error</h3>
+                <p id="countErr">0</p>
+            </div>
+        </div>
+
+        <!-- Resultados -->
+        <h2 id="resultTitle" style="display:none;">Detalle de Resultados</h2>
+        <div class="results-panel" id="resultPanel" style="display:none;"></div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p>Copyright © | Popayán 2025</p>
+            <p>Tesorería Comfacauca</p>
+            <p class="signature">Desarrollo: Wilmar Andrés Gómez</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
