@@ -1,0 +1,156 @@
+/* ============================================
+   STYLES.CSS – Validador Archivos Bancos
+   Estilos locales (complementa global.css)
+   ============================================ */
+
+/* ── Grid de archivos cargados ── */
+.files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.file-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-left: 4px solid #3498db;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.file-card:hover {
+    background: #edf6ff;
+    transform: scale(1.01);
+}
+
+.file-card.ok {
+    background: #eafaf1;
+    border-left-color: #28a745;
+    color: #155724;
+}
+
+.file-card.error {
+    background: #f8d7da;
+    border-left-color: #dc3545;
+    color: #721c24;
+}
+
+.file-card-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.file-card-remove {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 16px;
+    cursor: pointer;
+    width: auto !important;
+    min-width: unset;
+    padding: 0 3px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.file-card-remove:hover {
+    color: #dc3545;
+}
+
+/* ── Panel de resultados ── */
+.results-panel {
+    width: 100%;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 16px;
+    max-height: 380px;
+    overflow-y: auto;
+    font-size: 13px;
+}
+
+.result-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    line-height: 1.4;
+}
+
+.result-row.ok    { background: #d4edda; color: #155724; }
+.result-row.error { background: #f8d7da; color: #721c24; }
+
+.result-icon { flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+
+.result-text { flex: 1; }
+
+.result-detail {
+    font-size: 11px;
+    opacity: 0.75;
+    display: block;
+    margin-top: 3px;
+    font-style: italic;
+}
+
+/* ── Tarjetas de resumen ── */
+.summary {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.summary-card {
+    background: #f8f9fa;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 14px 28px;
+    text-align: center;
+    min-width: 110px;
+}
+
+.summary-card h3 {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.summary-card p {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.summary-card.ok   { border-color: #28a745; }
+.summary-card.ok p { color: #28a745; }
+.summary-card.err   { border-color: #dc3545; }
+.summary-card.err p { color: #dc3545; }
+
+/* ── Botón descargar reporte ── */
+#btnReporte {
+    background-color: #6c757d;
+    display: none;
+}
+
+#btnReporte:hover:not(:disabled) {
+    background-color: #545b62;
+}
