@@ -20,6 +20,36 @@ const fileCount     = document.getElementById('fileCount');
 const downloadLink  = document.getElementById('downloadLink');
 const resultInfo    = document.getElementById('resultInfo');
 
+/* ── Drag & Drop ─────────────────────────────────────────────── */
+const dropZone = document.getElementById('dropZone');
+
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('drag-active');
+});
+
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('drag-active');
+});
+
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-active');
+
+  const nuevos = Array.from(e.dataTransfer.files).filter(
+    nf => nf.name.toLowerCase().endsWith('.txt') &&
+          !files.some(f => f.name === nf.name && f.size === nf.size)
+  );
+  files = [...files, ...nuevos];
+  renderFileList();
+  combineButton.disabled = files.length === 0;
+
+  if (downloadLink) {
+    downloadLink.style.display = 'none';
+    if (resultInfo) resultInfo.textContent = '';
+  }
+});
+
 /* ── Selección de archivos ───────────────────────────────────── */
 fileInput.addEventListener('change', () => {
     if (fileInput.files.length === 0) { resetUI(); return; }
