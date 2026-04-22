@@ -246,10 +246,18 @@ function buildPlanoContent(registros) {
         const tipoCuenta = item.tipoCuenta === 'AHORROS' ? '2'
                          : item.tipoCuenta === 'CORRIENTE' ? '1' : 'ERROR';
 
-        const dato2 = item.tipoDocumento === 'CÉDULA CIUDADANÍA'  ? '1'
-                    : item.tipoDocumento === 'CÉDULA EXTRANJERÍA'  ? '2'
-                    : item.tipoDocumento === 'NIT'                 ? '3'
-                    : 'ERROR';
+      // CORRECCIÓN (completo con los 5 tipos):
+      const _tdoc = (item.tipoDocumento || '').toString().toUpperCase().trim();
+      const dato2 = (_tdoc === 'CÉDULA CIUDADANÍA'    || _tdoc === 'CEDULA CIUDADANIA'    ||
+               _tdoc === 'CÉDULA DE CIUDADANÍA' || _tdoc === 'CEDULA DE CIUDADANIA' ||
+               _tdoc === 'CC' || _tdoc === 'C.C.' || _tdoc === '1') ? '1'
+            : (_tdoc === 'CÉDULA EXTRANJERÍA'    || _tdoc === 'CEDULA EXTRANJERIA'   ||
+               _tdoc === 'CÉDULA DE EXTRANJERÍA' || _tdoc === 'CEDULA DE EXTRANJERIA'||
+               _tdoc === 'CE' || _tdoc === 'C.E.' || _tdoc === '2') ? '2'
+            : (_tdoc === 'NIT' || _tdoc === '3') ? '3'
+            : (_tdoc === 'TARJETA IDENTIDAD'     || _tdoc === 'TARJETA DE IDENTIDAD' ||
+               _tdoc === 'TI' || _tdoc === 'T.I.' || _tdoc === '4') ? '4'
+            : (_tdoc === 'PASAPORTE' || _tdoc === 'PAS' || _tdoc === '5') ? '5' : 'ERROR';
 
         const dato6 = item.tipoCuenta === 'AHORROS' ? '37'
                     : item.tipoCuenta === 'CORRIENTE' ? '27' : 'ERROR';
