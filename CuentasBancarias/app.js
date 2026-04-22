@@ -67,7 +67,6 @@ function onDrop(e) {
     e.preventDefault();
     dropZone.classList.remove('drag-active');
     if (e.dataTransfer.files.length > 0) {
-        // DataTransfer.files is read-only; trick to assign to input
         try {
             fileInput.files = e.dataTransfer.files;
         } catch (_) {
@@ -167,16 +166,19 @@ function transformSimpleToSiesa(jsonData) {
 
         if (!noDoc || !noCuenta || !bancoNom) return acc;
 
-        const bancoInfo = findBancoFlexible(bancoNom.toString().trim());
-        const tipoCuenta = tipoCta.toString().toUpperCase() === 'AHORROS' ? '2'
+        const bancoInfo  = findBancoFlexible(bancoNom.toString().trim());
+        const tipoCuenta = tipoCta.toString().toUpperCase() === 'AHORROS'   ? '2'
                          : tipoCta.toString().toUpperCase() === 'CORRIENTE' ? '1' : 'ERROR';
 
-        const dato2 = tipoDoc.toString().toUpperCase() === 'CÉDULA CIUDADANÍA' ? '1'
-                    : tipoDoc.toString().toUpperCase() === 'CÉDULA EXTRANJERÍA' ? '2'
-                    : tipoDoc.toString().toUpperCase() === 'NIT' ? '3' : 'ERROR';
+        // ✅ CORRECCIÓN: se agregaron Tarjeta de Identidad (4) y Pasaporte (5)
+        const dato2 = tipoDoc.toString().toUpperCase() === 'CÉDULA CIUDADANÍA'    ? '1'
+                    : tipoDoc.toString().toUpperCase() === 'CÉDULA EXTRANJERÍA'   ? '2'
+                    : tipoDoc.toString().toUpperCase() === 'NIT'                  ? '3'
+                    : tipoDoc.toString().toUpperCase() === 'TARJETA DE IDENTIDAD' ? '4'
+                    : tipoDoc.toString().toUpperCase() === 'PASAPORTE'            ? '5' : 'ERROR';
 
-        const dato6 = tipoCta.toString().toUpperCase() === 'AHORROS' ? '37'
-                    : tipoCta.toString().toUpperCase() === 'CORRIENTE' ? '27' : 'ERROR';
+        const dato6 = tipoCta.toString().toUpperCase() === 'AHORROS'   ? '37'
+                    : tipoCta.toString().toUpperCase() === 'CORRIENTE'  ? '27' : 'ERROR';
 
         const hasRowError = bancoInfo.banco === 'ERROR' || tipoCuenta === 'ERROR' || dato2 === 'ERROR';
 
@@ -199,6 +201,7 @@ function transformSimpleToSiesa(jsonData) {
             'DATO 8': '00000',
             hasError: hasRowError,
         });
+
         return acc;
     }, []);
 }
@@ -241,7 +244,6 @@ function renderTxtTable() {
             tr.appendChild(td);
         });
 
-        // Delete button
         const tdBtn = document.createElement('td');
         const btn = document.createElement('button');
         btn.className = 'btn-delete-row';
@@ -249,7 +251,6 @@ function renderTxtTable() {
         btn.onclick = () => { parsedData.splice(idx, 1); renderTxtTable(); finalizeRender(); };
         tdBtn.appendChild(btn);
         tr.appendChild(tdBtn);
-
         dataBody.appendChild(tr);
     });
 }
@@ -262,6 +263,7 @@ const SIESA_KEYS = [
     'Cuenta por defecto 0= cta reg. no es default, 1=cta reg. es default',
     'DATO 1', 'DATO 2', 'DATO 3', 'DATO 4', 'DATO 5', 'DATO 6', 'DATO 7', 'DATO 8',
 ];
+
 const SIESA_ALIASES = {
     'Código del proveedor': 'Documento',
     'Sucursal del proveedor': 'Sucursal',
@@ -310,7 +312,6 @@ function renderExcelTable(headers) {
         btn.onclick = () => { parsedData.splice(idx, 1); renderExcelTable(headers); finalizeRender(); };
         tdBtn.appendChild(btn);
         tr.appendChild(tdBtn);
-
         dataBody.appendChild(tr);
     });
 }
@@ -336,7 +337,6 @@ function updateDownloadButtons() {
 function updateErrorMessage() {
     const errCount = parsedData.filter(r => r.hasError).length;
     errorMessage.className = 'message-bar';
-
     if (errCount > 0) {
         errorMessage.className += ' error';
         errorMessage.textContent = `⚠️  ${errCount} fila(s) con errores. Elimínalas para habilitar las descargas.`;
@@ -378,10 +378,16 @@ function downloadSiesa() {
         : parsedData.map(item => {
             const bi = BANCO_SIESA_DATA[item.banco] ?? findBancoFlexible(item.banco);
             const tc = item.tipoCuenta === 'AHORROS' ? '2' : item.tipoCuenta === 'CORRIENTE' ? '1' : 'ERROR';
-            const d2 = item.tipoDocumento === 'CÉDULA CIUDADANÍA' ? '1'
-                     : item.tipoDocumento === 'CÉDULA EXTRANJERÍA' ? '2'
-                     : item.tipoDocumento === 'NIT' ? '3' : 'ERROR';
+
+            // ✅ CORRECCIÓN: se agregaron Tarjeta de Identidad (4) y Pasaporte (5)
+            const d2 = item.tipoDocumento === 'CÉDULA CIUDADANÍA'    ? '1'
+                     : item.tipoDocumento === 'CÉDULA EXTRANJERÍA'   ? '2'
+                     : item.tipoDocumento === 'NIT'                  ? '3'
+                     : item.tipoDocumento === 'TARJETA DE IDENTIDAD' ? '4'
+                     : item.tipoDocumento === 'PASAPORTE'            ? '5' : 'ERROR';
+
             const d6 = item.tipoCuenta === 'AHORROS' ? '37' : item.tipoCuenta === 'CORRIENTE' ? '27' : 'ERROR';
+
             return [item.numeroDocumento, '001', bi.banco, item.noCuenta, tc,
                     '00000509', '1', '1', item.numeroDocumento, d2, bi.dato3,
                     item.noCuenta, '', d6, '', '00000'];
@@ -395,11 +401,9 @@ function downloadSiesa() {
 
 function downloadPlano() {
     if (hasErrors || parsedData.length === 0) return;
-
     const content = isExcelMode
         ? buildPlanoFromExcel(parsedData)
         : buildPlanoContent(parsedData);   // from core.js
-
     triggerTextDownload(content, '153101H7M48erpfinanciero@comfacauca.com.txt');
 }
 
@@ -409,37 +413,31 @@ function buildPlanoFromExcel(data) {
         let linea = (i + 2).toString().padStart(7, '0');
         linea += '0';
         linea += '63400020011';
-
         linea += (row['Código del proveedor'] || '');
-        linea = linea.padEnd(34, ' ');
-
+        linea  = linea.padEnd(34, ' ');
         linea += (row['Sucursal del proveedor'] || '');
         linea += '1';
         linea += (row['Banco del proveedor'] || '');
         linea += ' '.repeat(8);
-
         linea += (row['Número de cuenta corriente o de ahorros'] || '');
-        linea = linea.padEnd(78, ' ');
-
+        linea  = linea.padEnd(78, ' ');
         linea += (row['Tipo de cuenta 1=cta cte 2=cta ahorro'] || '');
         linea += (row['formato'] || '');
         linea += (row['forma de pago'] || '');
         linea += (row['Cuenta por defecto 0= cta reg. no es default, 1=cta reg. es default'] || '');
         linea += '1';
-
         linea += (row['DATO 1'] || '');
-        linea = linea.padEnd(140, ' ');
+        linea  = linea.padEnd(140, ' ');
         linea += (row['DATO 2'] || '');
-        linea = linea.padEnd(190, ' ');
+        linea  = linea.padEnd(190, ' ');
         linea += (row['DATO 3'] || '');
-        linea = linea.padEnd(240, ' ');
+        linea  = linea.padEnd(240, ' ');
         linea += (row['DATO 4'] || '');
-        linea = linea.padEnd(340, ' ');
+        linea  = linea.padEnd(340, ' ');
         linea += (row['DATO 6'] || '');
-        linea = linea.padEnd(440, ' ');
+        linea  = linea.padEnd(440, ' ');
         linea += (row['DATO 8'] || '');
-        linea = linea.padEnd(840, ' ');
-
+        linea  = linea.padEnd(840, ' ');
         lineas.push(linea);
     });
     lineas.push(buildPlanoFooter(data.length));
@@ -453,7 +451,6 @@ function clearData() {
     hasErrors         = false;
     excelType         = null;
     isExcelMode       = false;
-
     resetFileUI();
     dataBody.innerHTML = '';
     dataHead.innerHTML = '';
