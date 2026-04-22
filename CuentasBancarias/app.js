@@ -171,11 +171,17 @@ function transformSimpleToSiesa(jsonData) {
                          : tipoCta.toString().toUpperCase() === 'CORRIENTE' ? '1' : 'ERROR';
 
         // ✅ CORRECCIÓN: se agregaron Tarjeta de Identidad (4) y Pasaporte (5)
-        const dato2 = tipoDoc.toString().toUpperCase() === 'CÉDULA CIUDADANÍA'    ? '1'
-                    : tipoDoc.toString().toUpperCase() === 'CÉDULA EXTRANJERÍA'   ? '2'
-                    : tipoDoc.toString().toUpperCase() === 'NIT'                  ? '3'
-                    : tipoDoc.toString().toUpperCase() === 'TARJETA DE IDENTIDAD' ? '4'
-                    : tipoDoc.toString().toUpperCase() === 'PASAPORTE'            ? '5' : 'ERROR';
+       // DESPUÉS (reconoce texto Y número):
+        const _td   = tipoDoc.toString().toUpperCase().trim();
+        const dato2 = (_td === 'CÉDULA CIUDADANÍA' || _td === 'CEDULA CIUDADANIA' ||
+               _td === 'CÉDULA DE CIUDADANÍA' || _td === 'CEDULA DE CIUDADANIA' ||
+               _td === 'CC' || _td === 'C.C.' || _td === '1') ? '1'
+            : (_td === 'CÉDULA EXTRANJERÍA' || _td === 'CEDULA EXTRANJERIA' ||
+               _td === 'CÉDULA DE EXTRANJERÍA' || _td === 'CEDULA DE EXTRANJERIA' ||
+               _td === 'CE' || _td === 'C.E.' || _td === '2') ? '2'
+            : (_td === 'NIT' || _td === '3') ? '3'
+            : (_td === 'TARJETA DE IDENTIDAD' || _td === 'TI' || _td === 'T.I.' || _td === '4') ? '4'
+            : (_td === 'PASAPORTE' || _td === 'PAS' || _td === '5') ? '5' : 'ERROR';
 
         const dato6 = tipoCta.toString().toUpperCase() === 'AHORROS'   ? '37'
                     : tipoCta.toString().toUpperCase() === 'CORRIENTE'  ? '27' : 'ERROR';
