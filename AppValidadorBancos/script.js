@@ -295,11 +295,16 @@ async function validarArchivo(file, verFecha, fechaHoyComparar, fechaHoyFormatea
 function agregarResultado(tipo, icono, nombre, mensaje, detalle) {
   const row = document.createElement('div');
   row.className = `result-row ${tipo}`;
+  
+  // Estructura mejorada para el CSS de columnas
   row.innerHTML = `
-    <span class="result-icon">${icono}</span>
-    <span class="result-text">
-      <strong>${escHtml(nombre)}</strong> — ${escHtml(mensaje)}
-      ${detalle ? `<span class="result-detail">${escHtml(detalle)}</span>` : ''}
+    <div class="result-header">
+      <span class="result-text">${escHtml(mensaje)}</span>
+      <span class="result-icon">${icono}</span>
+    </div>
+    <span class="result-detail">
+      <strong>Archivo:</strong> ${escHtml(nombre)}<br>
+      ${detalle ? detalle.replace(/\|/g, '<br>') : ''} 
     </span>
   `;
   resultPanel.appendChild(row);
