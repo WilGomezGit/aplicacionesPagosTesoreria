@@ -1,12 +1,6 @@
 /**
  * script.js – Validador de Archivos Bancos
  * Tesorería Comfacauca
- *
- * Valida:
- * 1. Referencia (TIPO + número)
- * 2. Cuenta bancaria según REGLAS
- * 3. Tipo de Servicio (220-PROVEEDOR / 225-NÓMINA)
- * 4. Extracción de DCTO CRUCE (después de /)
  */
 
 'use strict';
@@ -32,7 +26,6 @@ const REGLAS = {
   CL:  { cuentas: ['02409'],          desc: 'Comprobante de Legalización' },
 };
 
-/* ── Estado de la aplicación ── */
 let archivos = [];
 
 /* ── Referencias al DOM ── */
@@ -49,7 +42,7 @@ const resultPanel      = document.getElementById('resultPanel');
 const resultTitle      = document.getElementById('resultTitle');
 
 /* ================================================================
-   GESTIÓN DE CARGA (DRAG & DROP)
+   GESTIÓN DE ARCHIVOS
 ================================================================ */
 dropZone.addEventListener('click', () => fileInput.click());
 
@@ -75,14 +68,13 @@ function agregarArchivos(nuevos) {
   );
   archivos = [...archivos, ...lista];
   renderGrid();
-  fileInput.value = '';
 }
 
 function renderGrid() {
   filesGrid.innerHTML = '';
   btnValidar.disabled = archivos.length === 0;
-  fileCount.textContent = archivos.length > 0
-    ? `${archivos.length} archivo(s) cargado(s)`
+  fileCount.textContent = archivos.length > 0 
+    ? `${archivos.length} archivo(s) cargado(s)` 
     : 'No hay archivos seleccionados';
 
   archivos.forEach((file, i) => {
@@ -103,7 +95,7 @@ function quitarArchivo(i) {
 }
 
 /* ================================================================
-   VALIDACIÓN Y LÓGICA DE COLUMNAS
+   VALIDACIÓN PRINCIPAL
 ================================================================ */
 async function validar() {
   if (archivos.length === 0) return;
@@ -122,7 +114,7 @@ async function validar() {
   resultTitle.style.display = 'block';
   resultPanel.style.display = 'grid';
 
-  // LÓGICA DE COLUMNAS: Si hay más de 4, aplicar clase CSS de 2 columnas
+  // Lógica de columnas: Si hay más de 4, aplicar 2 columnas
   if (archivos.length > 4) {
     resultPanel.classList.add('grid-dos-columnas');
   } else {
@@ -148,7 +140,7 @@ async function validar() {
 
     document.getElementById('countOk').textContent  = okCount;
     document.getElementById('countErr').textContent = errCount;
-    await new Promise(resolve => setTimeout(resolve, 0)); // Ceder UI
+    await new Promise(r => setTimeout(r, 0));
   }
 
   btnValidar.disabled = false;
@@ -159,16 +151,16 @@ async function validarArchivo(file, verFecha, fechaHoyComparar) {
   let texto;
   try { texto = await file.text(); } catch (e) { return { ok: false, mensaje: 'Error lectura' }; }
 
-  // 1. Tipo de Servicio
+  // 1. Identificar 220 o 225
   let tipoServicio = "DESCONOCIDO";
   if (texto.includes("225")) tipoServicio = "NÓMINA";
   else if (texto.includes("220")) tipoServicio = "PROVEEDOR";
 
-  // 2. DCTO CRUCE (texto tras /)
+  // 2. DCTO CRUCE
   const matchCruce = texto.match(/\/([^\s]+)/);
   const dctoCruce = matchCruce ? matchCruce[1] : "No encontrado";
 
-  // 3. Nombre y Reglas
+  // 3. TIPO y NUMERO del nombre
   const nombre = file.name.replace(/\.txt$/i, '');
   const match = nombre.match(/([A-Z]{2,4})[_\-\s]?(\d+)/i);
   if (!match) return { ok: false, mensaje: 'Nombre inválido', detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}` };
@@ -186,14 +178,12 @@ async function validarArchivo(file, verFecha, fechaHoyComparar) {
   if (!cuenta) return { ok: false, mensaje: `Cuenta error para ${tipo}`, detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}` };
 
   let detalleFinal = `DCTO CRUCE: ${dctoCruce} | Cuenta: ${cuenta}`;
-  
   if (verFecha) {
     const regexFecha = new RegExp(`(\\d{8})${tipo}`);
     const fMatch = texto.match(regexFecha);
     if (fMatch) {
       const f = fMatch[1];
-      const fForm = `${f.substring(6,8)}/${f.substring(4,6)}/${f.substring(0,4)}`;
-      detalleFinal += ` | Pago: ${fForm}${f === fechaHoyComparar ? ' (Hoy)' : ' (Dif.)'}`;
+      detalleFinal += ` | Pago: ${f.substring(6,8)}/${f.substring(4,6)}/${f.substring(0,4)}`;
     }
   }
 
@@ -204,7 +194,6 @@ function agregarResultado(tipo, icono, nombre, mensaje, detalle) {
   const row = document.createElement('div');
   row.className = `result-row ${tipo}`;
   
-  // Dividimos el detalle por los "|" para mostrarlo ordenado
   const partes = detalle.split('|');
   const cruce = partes[0] ? partes[0].replace('DCTO CRUCE:', '').trim() : '---';
   const cuenta = partes[1] ? partes[1].trim() : '';
@@ -217,9 +206,8 @@ function agregarResultado(tipo, icono, nombre, mensaje, detalle) {
     </div>
     <div class="result-body">
       <div class="info-tag"><strong>DCTO CRUCE:</strong> ${cruce}</div>
-      <div class="info-sub">📄 Archivo: ${nombre}</div>
-      <div class="info-sub">🏦 ${cuenta}</div>
-      ${fecha ? `<div class="info-sub">📅 ${fecha}</div>` : ''}
+      <div class="info-sub">📄 ${nombre}</div>
+      <div class="info-sub">🏦 ${cuenta} ${fecha ? ' | 📅 ' + fecha : ''}</div>
     </div>
   `;
   resultPanel.appendChild(row);
@@ -242,5 +230,3 @@ function limpiar() {
   resetResultados();
   progressContainer.style.display = 'none';
 }
-
-function goToHome() { window.location.href = '../index.html'; }
