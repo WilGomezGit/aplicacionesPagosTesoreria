@@ -5,7 +5,7 @@
 /* ── Grid de archivos cargados ── */
 .files-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 10px;
     width: 100%;
     margin-bottom: 20px;
@@ -16,28 +16,65 @@
     border: 1px solid #dee2e6;
     border-left: 4px solid #3498db;
     border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 13px;
+    padding: 8px 12px;
+    font-size: 12px;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
-/* ── PANEL DE RESULTADOS (DISEÑO COLUMNAS) ── */
-.results-panel {
-    width: 100%;
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 20px;
-    max-height: 700px;
-    overflow-y: auto;
-    display: grid;
-    grid-template-columns: 1fr; /* 1 columna por defecto */
+/* ── TARJETAS DE RESUMEN (ESTILO RECUPERADO) ── */
+.summary {
+    display: flex;
     gap: 15px;
+    margin: 20px 0;
+    justify-content: center;
 }
 
-/* Clase para activar 2 columnas (si hay > 4 archivos) */
+.summary-card {
+    background: #f8f9fa;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 12px 30px;
+    text-align: center;
+    min-width: 120px;
+}
+
+.summary-card h3 {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.summary-card p {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.summary-card.ok { border-color: #28a745; }
+.summary-card.ok p { color: #28a745; }
+
+.summary-card.err { border-color: #dc3545; }
+.summary-card.err p { color: #dc3545; }
+
+/* ── PANEL DE RESULTADOS ── */
+.results-panel {
+    width: 100%;
+    background: #f1f3f5;
+    border-radius: 12px;
+    padding: 15px;
+    max-height: 600px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
 .results-panel.grid-dos-columnas {
     grid-template-columns: 1fr 1fr;
 }
@@ -45,73 +82,49 @@
 .result-row {
     background: #fff;
     border: 1px solid #e0e6ed;
-    border-radius: 10px;
-    padding: 18px;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.05);
-    display: flex;
-    flex-direction: column;
+    border-radius: 8px;
+    padding: 12px 15px; /* Reducido para que no sea tan grande */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.result-row.ok { border-left: 8px solid #28a745; }
-.result-row.error { border-left: 8px solid #dc3545; background: #fffcfc; }
+.result-row.ok { border-left: 6px solid #28a745; }
+.result-row.error { border-left: 6px solid #dc3545; background: #fffcfc; }
 
 .result-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
+    margin-bottom: 8px;
     border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 5px;
 }
 
 .result-text {
-    font-size: 17px; /* Letra más grande */
-    font-weight: 800;
-    color: #1a202c;
+    font-size: 15px; /* Ajustado */
+    font-weight: 700;
+    color: #2c3e50;
 }
 
-.result-icon { font-size: 20px; }
-
-.result-body {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
+.result-icon { font-size: 18px; }
 
 .info-tag {
-    font-size: 15px;
+    font-size: 13.5px; /* Ajustado */
     background: #edf2f7;
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 3px 8px;
+    border-radius: 5px;
     color: #2d3748;
     width: fit-content;
-    font-weight: 500;
+    margin-bottom: 4px;
 }
-
-.info-tag strong { color: #000; font-weight: 700; }
 
 .info-sub {
-    font-size: 13.5px;
+    font-size: 12px;
     color: #718096;
-    font-style: italic;
-}
-
-/* ── Resumen ── */
-.summary-card {
-    background: #fff;
-    border: 2px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 20px 40px;
-    text-align: center;
-}
-
-.summary-card p {
-    font-size: 38px;
-    font-weight: 800;
+    line-height: 1.4;
 }
 
 /* Responsive */
-@media (max-width: 900px) {
+@media (max-width: 850px) {
     .results-panel.grid-dos-columnas {
         grid-template-columns: 1fr;
     }
