@@ -5,6 +5,8 @@
  * Valida que cada archivo .txt contenga:
  * 1. La referencia al comprobante (TIPO + número)
  * 2. La cuenta bancaria correcta según las reglas contables
+ * 3. Identifica si es NÓMINA (225) o PROVEEDOR (220)
+ * 4. Extrae el DCTO CRUCE (después del /)
  */
 
 'use strict';
@@ -78,10 +80,6 @@ fileInput.addEventListener('change', () => {
    GESTIÓN DE ARCHIVOS
 ================================================================ */
 
-/**
- * Añade archivos a la lista sin duplicar.
- * Solo acepta .txt
- */
 function agregarArchivos(nuevos) {
   const lista = Array.from(nuevos).filter(f =>
     f.name.toLowerCase().endsWith('.txt') &&
@@ -92,7 +90,6 @@ function agregarArchivos(nuevos) {
   fileInput.value = '';
 }
 
-/** Renderiza las tarjetas de archivos cargados */
 function renderGrid() {
   filesGrid.innerHTML = '';
   btnValidar.disabled = archivos.length === 0;
@@ -112,7 +109,6 @@ function renderGrid() {
   });
 }
 
-/** Quita un archivo individual de la lista */
 function quitarArchivo(i) {
   archivos.splice(i, 1);
   renderGrid();
@@ -125,7 +121,6 @@ function quitarArchivo(i) {
 async function validar() {
   if (archivos.length === 0) return;
 
-  // Preguntar si se desea validar la fecha de pago
   const verFecha = confirm('¿Quieres validar la fecha de pago?');
 
   const hoy = new Date();
@@ -199,21 +194,7 @@ async function validar() {
    LÓGICA DE VALIDACIÓN POR ARCHIVO
 ================================================================ */
 
-/**
- * Valida un archivo individual.
- * Retorna { ok: boolean, mensaje: string, detalle: string }
- *
- * Pasos:
- *  1. Leer el contenido del archivo
- *  2. Detectar TIPO y NÚMERO desde el nombre del archivo
- *  3. Verificar que el tipo exista en las reglas
- *  4. Verificar referencia al comprobante dentro del texto
- *     (tipos de 2 letras → "CE 001"  |  tipos de 3+ letras → "CEX001")
- *  5. Verificar que el texto contenga la cuenta bancaria correcta (sin guión)
- *  6. (Opcional) Verificar la fecha de pago
- */
 async function validarArchivo(file, verFecha, fechaHoyComparar, fechaHoyFormateada) {
-  // 1. Leer contenido
   let texto;
   try {
     texto = await file.text();
@@ -225,8 +206,19 @@ async function validarArchivo(file, verFecha, fechaHoyComparar, fechaHoyFormatea
     return { ok: false, mensaje: 'El archivo está vacío', detalle: '' };
   }
 
-  // 2. Extraer tipo y número del nombre del archivo
-  //    Acepta: CE-001.txt | CE001.txt | _CE-001.txt | CE 001.txt
+  // --- 1. DETECTAR TIPO DE ARCHIVO (220 o 225) ---
+  let tipoServicio = "DESCONOCIDO";
+  if (texto.includes("225")) {
+    tipoServicio = "NÓMINA";
+  } else if (texto.includes("220")) {
+    tipoServicio = "PROVEEDOR";
+  }
+
+  // --- 2. EXTRAER DCTO CRUCE (Después del /) ---
+  const matchCruce = texto.match(/\/([^\s]+)/);
+  const dctoCruce = matchCruce ? matchCruce[1] : "No encontrado";
+
+  // 3. Extraer tipo y número del nombre del archivo
   const nombre = file.name.replace(/\.txt$/i, '');
   const match  = nombre.match(/([A-Z]{2,4})[_\-\s]?(\d+)/i);
 
@@ -234,50 +226,46 @@ async function validarArchivo(file, verFecha, fechaHoyComparar, fechaHoyFormatea
     return {
       ok: false,
       mensaje: 'Nombre de archivo no reconocido',
-      detalle: 'Formato esperado: TIPO-NUMERO.txt (ej: CE-001.txt, EK-023.txt)'
+      detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}`
     };
   }
 
   const tipo   = match[1].toUpperCase();
   const numero = match[2];
 
-  // 3. Verificar que el tipo existe en las reglas
+  // 4. Verificar que el tipo existe en las reglas
   const regla = REGLAS[tipo];
   if (!regla) {
     return {
       ok: false,
-      mensaje: `Tipo de comprobante "${tipo}" no reconocido`,
-      detalle: `Tipos válidos: ${Object.keys(REGLAS).join(', ')}`
+      mensaje: `Tipo "${tipo}" no reconocido`,
+      detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}`
     };
   }
 
-  // 4. Verificar referencia al comprobante en el contenido
-  //    - Tipos de 2 letras (CE, EK, CJ…) → busca "CE 001" (con espacio)
-  //    - Tipos de 3+ letras (CEX, ICE…)  → busca "CEX001" (sin separador)
-  const formatoBusqueda = tipo.length === 2
-    ? `${tipo} ${numero}`
-    : `${tipo}${numero}`;
+  // 5. Verificar referencia al comprobante
+  const formatoBusqueda = tipo.length === 2 ? `${tipo} ${numero}` : `${tipo}${numero}`;
 
   if (!texto.includes(formatoBusqueda)) {
     return {
       ok: false,
-      mensaje: `El archivo no contiene la referencia "${formatoBusqueda}"`,
-      detalle: `Se buscó: "${formatoBusqueda}" dentro del contenido`
+      mensaje: `No contiene referencia "${formatoBusqueda}"`,
+      detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}`
     };
   }
 
-  // 5. Verificar cuenta bancaria (los números aparecen SIN guión en el contenido)
+  // 6. Verificar cuenta bancaria
   const cuentaEncontrada = regla.cuentas.find(c => texto.includes(c));
   if (!cuentaEncontrada) {
     return {
       ok: false,
-      mensaje: `Cuenta bancaria incorrecta para ${tipo} (${regla.desc})`,
-      detalle: `Cuentas esperadas: ${regla.cuentas.join(' o ')}`
+      mensaje: `Cuenta incorrecta para ${tipo}`,
+      detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}`
     };
   }
 
-  // 6. Validar fecha de pago (opcional)
-  let extraDetalle = `Cuenta encontrada: ${cuentaEncontrada}`;
+  // 7. Validar fecha de pago (opcional)
+  let extraDetalle = `DCTO CRUCE: ${dctoCruce} | Servicio: ${tipoServicio} | Cuenta: ${cuentaEncontrada}`;
 
   if (verFecha) {
     const regexFecha = new RegExp(`(\\d{8})${tipo}`);
@@ -289,18 +277,13 @@ async function validarArchivo(file, verFecha, fechaHoyComparar, fechaHoyFormatea
       const mes  = f.substring(4, 6);
       const anio = f.substring(0, 4);
       const fechaFormateada = `${dia}/${mes}/${anio}`;
-
-      if (f === fechaHoyComparar) {
-        extraDetalle += ` · 📅 Fecha de Pago: ${fechaFormateada} (Hoy)`;
-      } else {
-        extraDetalle += ` · 📅 Fecha de Pago: ${fechaFormateada} (Diferente a hoy)`;
-      }
+      extraDetalle += ` | 📅 Pago: ${fechaFormateada}${f === fechaHoyComparar ? ' (Hoy)' : ' (Dif.)'}`;
     }
   }
 
   return {
     ok: true,
-    mensaje: `${tipo}-${numero} correcto · ${regla.desc}`,
+    mensaje: `${tipo}-${numero} (${tipoServicio})`,
     detalle: extraDetalle
   };
 }
@@ -309,7 +292,6 @@ async function validarArchivo(file, verFecha, fechaHoyComparar, fechaHoyFormatea
    UI HELPERS
 ================================================================ */
 
-/** Agrega una fila al panel de resultados */
 function agregarResultado(tipo, icono, nombre, mensaje, detalle) {
   const row = document.createElement('div');
   row.className = `result-row ${tipo}`;
@@ -324,7 +306,6 @@ function agregarResultado(tipo, icono, nombre, mensaje, detalle) {
   resultPanel.scrollTop = resultPanel.scrollHeight;
 }
 
-/** Descarga el reporte en .txt */
 function descargarReporte() {
   const blob = new Blob([reporteTexto], { type: 'text/plain;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
@@ -338,7 +319,6 @@ function descargarReporte() {
   URL.revokeObjectURL(url);
 }
 
-/** Limpia todo el estado de la app */
 function limpiar() {
   archivos = [];
   fileInput.value = '';
@@ -348,7 +328,6 @@ function limpiar() {
   progressContainer.style.display = 'none';
 }
 
-/** Resetea solo la sección de resultados */
 function resetResultados() {
   resultPanel.innerHTML         = '';
   resultPanel.style.display     = 'none';
@@ -358,7 +337,6 @@ function resetResultados() {
   document.getElementById('countErr').textContent = '0';
 }
 
-/** Escapa caracteres HTML para evitar XSS */
 function escHtml(str) {
   return String(str)
     .replace(/&/g,  '&amp;')
@@ -367,12 +345,10 @@ function escHtml(str) {
     .replace(/"/g,  '&quot;');
 }
 
-/** Cede el control al navegador para actualizar la UI entre iteraciones */
 function cederUI() {
   return new Promise(resolve => setTimeout(resolve, 0));
 }
 
-/** Navegar al inicio */
 function goToHome() {
   window.location.href = '../index.html';
 }
