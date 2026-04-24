@@ -230,3 +230,5 @@ function limpiar() {
   resetResultados();
   progressContainer.style.display = 'none';
 }
+
+function goToHome() { window.location.href = '../index.html'; }
