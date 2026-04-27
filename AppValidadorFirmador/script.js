@@ -246,7 +246,7 @@ async function startProcessing() {
     estadoLabel.innerHTML = '⏳ Aplicando firmas y generando PDF final...';
 
     try {
-        validationResults.sort((a, b) => a.formattedName.localeCompare(b.formattedName));
+        validationResults.sort((a, b) => a.result.formattedName.localeCompare(b.result.formattedName));
         const mergedPdf = await PDFDocument.create();
 
         for (let i = 0; i < validationResults.length; i++) {
