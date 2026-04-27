@@ -4,7 +4,7 @@
  * - localStorage puede fallar en modo file:// → usar variable en memoria
  * - firmaBytes se lanzaba por cada PDF pero debería leerse una sola vez
  * - No se liberaban Object URLs → memory leak
- * - btnClear quedaba disabled si el usuario cancelaba
+ * - btnClear quedaba disabled si el usuario cancelahba
  */
 
 'use strict';
@@ -246,6 +246,7 @@ async function startProcessing() {
     estadoLabel.innerHTML = '⏳ Aplicando firmas y generando PDF final...';
 
     try {
+        validationResults.sort((a, b) => a.formattedName.localeCompare(b.formattedName));
         const mergedPdf = await PDFDocument.create();
 
         for (let i = 0; i < validationResults.length; i++) {
