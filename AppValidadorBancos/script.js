@@ -173,7 +173,9 @@ async function validar() {
 
   summary.style.display = 'flex';
   resultTitle.style.display = 'block';
-  resultPanel.style.display = 'grid';
+  resultPanel.style.display = '';
+  resultPanel.classList.add('results-panel');
+  resultPanel.classList.add('grid-dos-columnas');
 
   let ok = 0, err = 0;
 
