@@ -58,7 +58,6 @@ function extraerValor(texto) {
 
       if (match) {
         const valorNum = parseInt(match[1], 10) / 100;
-
         if (valorNum > 0) {
           return {
             valor: valorNum,
@@ -175,14 +174,28 @@ async function validar() {
   summary.style.display = 'flex';
   resultTitle.style.display = 'block';
   resultPanel.style.display = 'grid';
-  resultPanel.classList.toggle('grid-dos-columnas', archivos.length > 4);
 
   let ok = 0, err = 0;
 
-  for (let i = 0; i < archivos.length; i++) {
-    const file = archivos[i];
+  // 🔤 Orden alfabético
+  const ordenados = [...archivos].sort((a, b) =>
+    a.name.localeCompare(b.name, 'es', { numeric: true })
+  );
 
-    progressText.textContent = `${i + 1} / ${archivos.length}`;
+  // 📊 División en columnas
+  const mitad = Math.ceil(ordenados.length / 2);
+  const ordenFinal = [];
+
+  for (let i = 0; i < mitad; i++) {
+    if (ordenados[i]) ordenFinal.push(ordenados[i]);
+    if (ordenados[i + mitad]) ordenFinal.push(ordenados[i + mitad]);
+  }
+
+  // 🚀 Validación en orden visual
+  for (let i = 0; i < ordenFinal.length; i++) {
+    const file = ordenFinal[i];
+
+    progressText.textContent = `${i + 1} / ${ordenFinal.length}`;
     progressBar.value = i + 1;
 
     const res = await validarArchivo(file, verFecha);
@@ -193,7 +206,6 @@ async function validar() {
     if (res.ok) ok++; else err++;
 
     agregarResultado(estado, res, file);
-
     actualizarCard(file.name, estado);
 
     document.getElementById('countOk').textContent = ok;
@@ -222,6 +234,9 @@ function actualizarCard(nombre, estado) {
   icon.textContent = estado === 'ok' ? '✅' : '❌';
 }
 
+/* ================================================================
+   VALIDAR ARCHIVO
+================================================================ */
 async function validarArchivo(file, verFecha) {
   let texto;
 
