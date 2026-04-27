@@ -27,7 +27,7 @@ const REGLAS = {
 };
 
 let archivos = [];
-let valoresMap = new Map(); // nombreArchivo -> { valor, cuenta, valorFormateado }
+let valoresMap = new Map();
 
 /* ── Referencias al DOM ── */
 const dropZone         = document.getElementById('dropZone');
@@ -43,30 +43,52 @@ const resultPanel      = document.getElementById('resultPanel');
 const resultTitle      = document.getElementById('resultTitle');
 
 /* ================================================================
-   EXTRACCIÓN DE VALOR DEL ARCHIVO PLANO
+   EXTRACCIÓN DE VALOR – BUSCA CUENTA CONOCIDA + 12 DÍGITOS ANTES
 ================================================================ */
 function extraerValor(texto) {
-  // Buscar patrón: fecha YYYYMMDD + A + espacios + fecha YYYYMMDD + bloque numérico + S
-  // El bloque numérico contiene: [otros datos][VALOR CON DECIMALES][CUENTA 11 DÍGITOS]
-  const match = texto.match(/\d{8}A\s*\d{8}(\d+)S/);
-  if (!match) return null;
-  
-  const bloque = match[1];
-  if (bloque.length < 13) return null; // Mínimo: cuenta(11) + decimales(2)
-  
-  // Últimos 11 dígitos = cuenta bancaria completa
-  const cuenta = bloque.slice(-11);
-  // Todo lo anterior = incluye valor con 2 decimales implícitos
-  const valorStr = bloque.slice(0, -11);
-  const valorNum = parseInt(valorStr, 10) / 100; // Dividir entre 100 para obtener decimales
-  
-  if (isNaN(valorNum) || valorNum === 0) return null;
-  
-  return {
-    valor: valorNum,
-    cuenta: cuenta,
-    valorFormateado: formatearCOP(valorNum)
-  };
+  // Solo primera línea (donde está el registro de control)
+  const primeraLinea = texto.split('\n')[0];
+
+  // Códigos de cuenta de 5 dígitos (últimos 5 de la cuenta de 11)
+  const codigos5 = [
+    '55212', '69866', '11402', '88627', '18061', '34044', '13052',
+    '04623', '03379', '06343', '64629', '53461', '01514', '02409'
+  ];
+
+  for (const codigo of codigos5) {
+    // 12 dígitos valor + 6 dígitos prefijo + código 5 dígitos + S
+    const regex = new RegExp(`(\\d{12})\\d{6}${codigo}S`);
+    const match = primeraLinea.match(regex);
+    if (match) {
+      const valorNum = parseInt(match[1], 10) / 100;
+      if (valorNum > 0) {
+        return {
+          valor: valorNum,
+          cuenta: match[0].slice(match[0].length - 12, match[0].length - 1),
+          valorFormateado: formatearCOP(valorNum)
+        };
+      }
+    }
+  }
+
+  // Códigos de 4 dígitos (EO=4623, CEX=3379) con prefijo de 7
+  const codigos4 = ['4623', '3379'];
+  for (const codigo of codigos4) {
+    const regex = new RegExp(`(\\d{12})\\d{7}${codigo}S`);
+    const match = primeraLinea.match(regex);
+    if (match) {
+      const valorNum = parseInt(match[1], 10) / 100;
+      if (valorNum > 0) {
+        return {
+          valor: valorNum,
+          cuenta: match[0].slice(match[0].length - 12, match[0].length - 1),
+          valorFormateado: formatearCOP(valorNum)
+        };
+      }
+    }
+  }
+
+  return null;
 }
 
 function formatearCOP(valor) {
@@ -102,12 +124,12 @@ async function agregarArchivos(nuevos) {
     f.name.toLowerCase().endsWith('.txt') &&
     !archivos.some(a => a.name === f.name && a.size === f.size)
   );
-  
+
   if (lista.length === 0) return;
-  
+
   archivos = [...archivos, ...lista];
-  
-  // Extraer valor de cada archivo
+
+  // Extraer valor de cada archivo al cargarlo
   for (const file of lista) {
     try {
       const texto = await file.text();
@@ -116,39 +138,30 @@ async function agregarArchivos(nuevos) {
       valoresMap.set(file.name, null);
     }
   }
-  
+
   renderGrid();
 }
 
 function renderGrid() {
   filesGrid.innerHTML = '';
   btnValidar.disabled = archivos.length === 0;
-  fileCount.textContent = archivos.length > 0 
-    ? `${archivos.length} archivo(s) cargado(s)` 
+  fileCount.textContent = archivos.length > 0
+    ? `${archivos.length} archivo(s) cargado(s)`
     : 'No hay archivos seleccionados';
 
   archivos.forEach((file) => {
     const card = document.createElement('div');
     card.className = 'file-card';
-    card.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:5px 10px;font-size:0.78rem;gap:8px;';
-    
+
     const valorInfo = valoresMap.get(file.name);
     const valorStr = valorInfo ? valorInfo.valorFormateado : '---';
-    
+
     card.innerHTML = `
-      <span class="file-card-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">📄 ${escHtml(file.name)}</span>
-      <span class="file-card-value" style="font-weight:600;color:#1d4ed8;margin-left:auto;white-space:nowrap;">${valorStr}</span>
+      <span class="file-card-name">📄 ${escHtml(file.name)}</span>
+      <span class="file-card-value">${valorStr}</span>
     `;
     filesGrid.appendChild(card);
   });
-}
-
-function quitarArchivo(i) {
-  const name = archivos[i].name;
-  archivos.splice(i, 1);
-  valoresMap.delete(name);
-  renderGrid();
-  resetResultados();
 }
 
 /* ================================================================
@@ -166,7 +179,7 @@ async function validar() {
 
   progressContainer.style.display = 'block';
   progressBar.max = archivos.length;
-  
+
   summary.style.display     = 'flex';
   resultTitle.style.display = 'block';
   resultPanel.style.display = 'grid';
@@ -185,13 +198,13 @@ async function validar() {
     progressBar.value = i + 1;
 
     const resultado = await validarArchivo(file, verFecha, fechaHoyComparar);
-    
+
     if (resultado.ok) {
       okCount++;
-      agregarResultado('ok', '✅', file.name, resultado.mensaje, resultado.detalle);
+      agregarResultado('ok', '✅', file.name, resultado.mensaje, resultado.detalle, resultado.valor);
     } else {
       errCount++;
-      agregarResultado('error', '❌', file.name, resultado.mensaje, resultado.detalle);
+      agregarResultado('error', '❌', file.name, resultado.mensaje, resultado.detalle, resultado.valor);
     }
 
     document.getElementById('countOk').textContent  = okCount;
@@ -205,7 +218,7 @@ async function validar() {
 
 async function validarArchivo(file, verFecha, fechaHoyComparar) {
   let texto;
-  try { texto = await file.text(); } catch (e) { return { ok: false, mensaje: 'Error lectura', detalle: '' }; }
+  try { texto = await file.text(); } catch (e) { return { ok: false, mensaje: 'Error lectura', detalle: '', valor: '' }; }
 
   // 1. Identificar 220 o 225
   let tipoServicio = "DESCONOCIDO";
@@ -219,28 +232,27 @@ async function validarArchivo(file, verFecha, fechaHoyComparar) {
   // 3. TIPO y NUMERO del nombre
   const nombre = file.name.replace(/\.txt$/i, '');
   const match = nombre.match(/([A-Z]{2,4})[_\-\s]?(\d+)/i);
-  if (!match) return { ok: false, mensaje: 'Nombre inválido', detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}` };
+  if (!match) return { ok: false, mensaje: 'Nombre inválido', detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}`, valor: '' };
 
   const tipo = match[1].toUpperCase();
   const numero = match[2];
   const regla = REGLAS[tipo];
-  if (!regla) return { ok: false, mensaje: `Tipo ${tipo} no soportado`, detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}` };
+  if (!regla) return { ok: false, mensaje: `Tipo ${tipo} no soportado`, detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}`, valor: '' };
 
   // 4. Referencia y Cuenta
   const formato = tipo.length === 2 ? `${tipo} ${numero}` : `${tipo}${numero}`;
-  if (!texto.includes(formato)) return { ok: false, mensaje: `Falta ref: ${formato}`, detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}` };
+  if (!texto.includes(formato)) return { ok: false, mensaje: `Falta ref: ${formato}`, detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}`, valor: '' };
 
   const cuenta = regla.cuentas.find(c => texto.includes(c));
-  if (!cuenta) return { ok: false, mensaje: `Cuenta error para ${tipo}`, detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}` };
+  if (!cuenta) return { ok: false, mensaje: `Cuenta error para ${tipo}`, detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}`, valor: '' };
 
-  // 5. Obtener valor formateado del Map
+  // 5. Valor formateado
   const valorInfo = valoresMap.get(file.name);
   const valorStr = valorInfo ? valorInfo.valorFormateado : '';
 
-  // Construir detalle
+  // Construir detalle (sin valor, se pasa separado)
   let detalleFinal = `DCTO CRUCE: ${dctoCruce} | Cuenta: ${cuenta}`;
-  if (valorStr) detalleFinal += ` | ${valorStr}`;
-  
+
   if (verFecha) {
     const regexFecha = new RegExp(`(\\d{8})${tipo}`);
     const fMatch = texto.match(regexFecha);
@@ -250,23 +262,21 @@ async function validarArchivo(file, verFecha, fechaHoyComparar) {
     }
   }
 
-  return { ok: true, mensaje: `${tipo}-${numero} (${tipoServicio})`, detalle: detalleFinal };
+  return { ok: true, mensaje: `${tipo}-${numero} (${tipoServicio})`, detalle: detalleFinal, valor: valorStr };
 }
 
-function agregarResultado(tipo, icono, nombre, mensaje, detalle) {
+function agregarResultado(tipo, icono, nombre, mensaje, detalle, valor) {
   const row = document.createElement('div');
   row.className = `result-row ${tipo}`;
-  
-  // Extraer partes con regex
+
+  // Extraer partes del detalle
   const cruceMatch = detalle.match(/DCTO CRUCE:\s*([^|]+)/);
   const cuentaMatch = detalle.match(/Cuenta:\s*([^|]+)/);
-  const valorMatch = detalle.match(/(\$\d[\d.,]+)/);
   const fechaMatch = detalle.match(/Pago:\s*([\d/]+)/);
-  
-  const cruce = cruceMatch ? cruceMatch[1].trim() : '---';
-  const cuenta = cuentaMatch ? cuentaMatch[1].trim() : '';
-  const valor = valorMatch ? valorMatch[1] : '';
-  const fecha = fechaMatch ? fechaMatch[1] : '';
+
+  const cruce  = cruceMatch  ? cruceMatch[1].trim()  : '---';
+  const cuenta = cuentaMatch ? cuentaMatch[1].trim()  : '';
+  const fecha  = fechaMatch  ? fechaMatch[1].trim()   : '';
 
   row.innerHTML = `
     <div class="result-header">
@@ -276,7 +286,8 @@ function agregarResultado(tipo, icono, nombre, mensaje, detalle) {
     <div class="result-body">
       <div class="info-tag"><strong>DCTO CRUCE:</strong> ${cruce}</div>
       <div class="info-sub">📄 ${nombre}</div>
-      <div class="info-sub">🏦 ${cuenta}${valor ? ' | 💰 ' + valor : ''}${fecha ? ' | 📅 ' + fecha : ''}</div>
+      ${valor ? `<div class="info-sub info-valor">💰 ${valor}</div>` : ''}
+      <div class="info-sub">🏦 ${cuenta}${fecha ? ' &nbsp;|&nbsp; 📅 ' + fecha : ''}</div>
     </div>
   `;
   resultPanel.appendChild(row);
