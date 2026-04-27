@@ -175,6 +175,7 @@ async function validar() {
   summary.style.display = 'flex';
   resultTitle.style.display = 'block';
   resultPanel.style.display = 'grid';
+  resultPanel.classList.toggle('grid-dos-columnas', archivos.length > 4);
   
   if (archivos.length > 4) {
      resultPanel.classList.add('grid-dos-columnas');
