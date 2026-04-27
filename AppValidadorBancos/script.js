@@ -175,6 +175,12 @@ async function validar() {
   summary.style.display = 'flex';
   resultTitle.style.display = 'block';
   resultPanel.style.display = 'grid';
+  
+  if (archivos.length > 4) {
+     resultPanel.classList.add('grid-dos-columnas');
+   } else {
+     resultPanel.classList.remove('grid-dos-columnas');
+   }
 
   let ok = 0, err = 0;
 
