@@ -27,6 +27,7 @@ const REGLAS = {
 };
 
 let archivos = [];
+let valoresMap = new Map(); // nombreArchivo -> { valor, cuenta, valorFormateado }
 
 /* ── Referencias al DOM ── */
 const dropZone         = document.getElementById('dropZone');
@@ -40,6 +41,41 @@ const progressText     = document.getElementById('progressText');
 const summary          = document.getElementById('summary');
 const resultPanel      = document.getElementById('resultPanel');
 const resultTitle      = document.getElementById('resultTitle');
+
+/* ================================================================
+   EXTRACCIÓN DE VALOR DEL ARCHIVO PLANO
+================================================================ */
+function extraerValor(texto) {
+  // Buscar patrón: fecha YYYYMMDD + A + espacios + fecha YYYYMMDD + bloque numérico + S
+  // El bloque numérico contiene: [otros datos][VALOR CON DECIMALES][CUENTA 11 DÍGITOS]
+  const match = texto.match(/\d{8}A\s*\d{8}(\d+)S/);
+  if (!match) return null;
+  
+  const bloque = match[1];
+  if (bloque.length < 13) return null; // Mínimo: cuenta(11) + decimales(2)
+  
+  // Últimos 11 dígitos = cuenta bancaria completa
+  const cuenta = bloque.slice(-11);
+  // Todo lo anterior = incluye valor con 2 decimales implícitos
+  const valorStr = bloque.slice(0, -11);
+  const valorNum = parseInt(valorStr, 10) / 100; // Dividir entre 100 para obtener decimales
+  
+  if (isNaN(valorNum) || valorNum === 0) return null;
+  
+  return {
+    valor: valorNum,
+    cuenta: cuenta,
+    valorFormateado: formatearCOP(valorNum)
+  };
+}
+
+function formatearCOP(valor) {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 2
+  }).format(valor);
+}
 
 /* ================================================================
    GESTIÓN DE ARCHIVOS
@@ -61,12 +97,26 @@ dropZone.addEventListener('drop', (e) => {
 
 fileInput.addEventListener('change', () => agregarArchivos(fileInput.files));
 
-function agregarArchivos(nuevos) {
+async function agregarArchivos(nuevos) {
   const lista = Array.from(nuevos).filter(f =>
     f.name.toLowerCase().endsWith('.txt') &&
     !archivos.some(a => a.name === f.name && a.size === f.size)
   );
+  
+  if (lista.length === 0) return;
+  
   archivos = [...archivos, ...lista];
+  
+  // Extraer valor de cada archivo
+  for (const file of lista) {
+    try {
+      const texto = await file.text();
+      valoresMap.set(file.name, extraerValor(texto));
+    } catch (e) {
+      valoresMap.set(file.name, null);
+    }
+  }
+  
   renderGrid();
 }
 
@@ -77,19 +127,26 @@ function renderGrid() {
     ? `${archivos.length} archivo(s) cargado(s)` 
     : 'No hay archivos seleccionados';
 
-  archivos.forEach((file, i) => {
+  archivos.forEach((file) => {
     const card = document.createElement('div');
     card.className = 'file-card';
+    card.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:5px 10px;font-size:0.78rem;gap:8px;';
+    
+    const valorInfo = valoresMap.get(file.name);
+    const valorStr = valorInfo ? valorInfo.valorFormateado : '---';
+    
     card.innerHTML = `
-      <span class="file-card-name">📄 ${escHtml(file.name)}</span>
-      <button class="file-card-remove" onclick="quitarArchivo(${i})">×</button>
+      <span class="file-card-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">📄 ${escHtml(file.name)}</span>
+      <span class="file-card-value" style="font-weight:600;color:#1d4ed8;margin-left:auto;white-space:nowrap;">${valorStr}</span>
     `;
     filesGrid.appendChild(card);
   });
 }
 
 function quitarArchivo(i) {
+  const name = archivos[i].name;
   archivos.splice(i, 1);
+  valoresMap.delete(name);
   renderGrid();
   resetResultados();
 }
@@ -114,7 +171,6 @@ async function validar() {
   resultTitle.style.display = 'block';
   resultPanel.style.display = 'grid';
 
-  // Lógica de columnas: Si hay más de 4, aplicar 2 columnas
   if (archivos.length > 4) {
     resultPanel.classList.add('grid-dos-columnas');
   } else {
@@ -149,7 +205,7 @@ async function validar() {
 
 async function validarArchivo(file, verFecha, fechaHoyComparar) {
   let texto;
-  try { texto = await file.text(); } catch (e) { return { ok: false, mensaje: 'Error lectura' }; }
+  try { texto = await file.text(); } catch (e) { return { ok: false, mensaje: 'Error lectura', detalle: '' }; }
 
   // 1. Identificar 220 o 225
   let tipoServicio = "DESCONOCIDO";
@@ -177,7 +233,14 @@ async function validarArchivo(file, verFecha, fechaHoyComparar) {
   const cuenta = regla.cuentas.find(c => texto.includes(c));
   if (!cuenta) return { ok: false, mensaje: `Cuenta error para ${tipo}`, detalle: `Servicio: ${tipoServicio} | DCTO CRUCE: ${dctoCruce}` };
 
+  // 5. Obtener valor formateado del Map
+  const valorInfo = valoresMap.get(file.name);
+  const valorStr = valorInfo ? valorInfo.valorFormateado : '';
+
+  // Construir detalle
   let detalleFinal = `DCTO CRUCE: ${dctoCruce} | Cuenta: ${cuenta}`;
+  if (valorStr) detalleFinal += ` | ${valorStr}`;
+  
   if (verFecha) {
     const regexFecha = new RegExp(`(\\d{8})${tipo}`);
     const fMatch = texto.match(regexFecha);
@@ -194,10 +257,16 @@ function agregarResultado(tipo, icono, nombre, mensaje, detalle) {
   const row = document.createElement('div');
   row.className = `result-row ${tipo}`;
   
-  const partes = detalle.split('|');
-  const cruce = partes[0] ? partes[0].replace('DCTO CRUCE:', '').trim() : '---';
-  const cuenta = partes[1] ? partes[1].trim() : '';
-  const fecha = partes[2] ? partes[2].trim() : '';
+  // Extraer partes con regex
+  const cruceMatch = detalle.match(/DCTO CRUCE:\s*([^|]+)/);
+  const cuentaMatch = detalle.match(/Cuenta:\s*([^|]+)/);
+  const valorMatch = detalle.match(/(\$\d[\d.,]+)/);
+  const fechaMatch = detalle.match(/Pago:\s*([\d/]+)/);
+  
+  const cruce = cruceMatch ? cruceMatch[1].trim() : '---';
+  const cuenta = cuentaMatch ? cuentaMatch[1].trim() : '';
+  const valor = valorMatch ? valorMatch[1] : '';
+  const fecha = fechaMatch ? fechaMatch[1] : '';
 
   row.innerHTML = `
     <div class="result-header">
@@ -207,7 +276,7 @@ function agregarResultado(tipo, icono, nombre, mensaje, detalle) {
     <div class="result-body">
       <div class="info-tag"><strong>DCTO CRUCE:</strong> ${cruce}</div>
       <div class="info-sub">📄 ${nombre}</div>
-      <div class="info-sub">🏦 ${cuenta} ${fecha ? ' | 📅 ' + fecha : ''}</div>
+      <div class="info-sub">🏦 ${cuenta}${valor ? ' | 💰 ' + valor : ''}${fecha ? ' | 📅 ' + fecha : ''}</div>
     </div>
   `;
   resultPanel.appendChild(row);
@@ -226,6 +295,7 @@ function escHtml(str) {
 
 function limpiar() {
   archivos = [];
+  valoresMap.clear();
   renderGrid();
   resetResultados();
   progressContainer.style.display = 'none';
