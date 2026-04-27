@@ -161,7 +161,7 @@ function renderGrid() {
     const icono = estado === 'ok' ? '✅' : estado === 'error' ? '❌' : '';
 
     card.innerHTML = `
-      <span class="file-card-name">📄 ${escHtml(file.name)}</span>
+      <span class="file-card-name">📄 ${escHtml(file.name.replace(/\.txt$/i, ''))}</span>
       ${icono ? `<span class="file-card-status">${icono}</span>` : ''}
     `;
     filesGrid.appendChild(card);
@@ -209,10 +209,10 @@ async function validar() {
 
     if (resultado.ok) {
       okCount++;
-      agregarResultado('ok', '✅', file.name, resultado.mensaje, resultado.detalle, resultado.valor);
+      agregarResultado('ok', '✅', file.name.replace(/\.txt$/i, ''), resultado.mensaje, resultado.detalle, resultado.valor);
     } else {
       errCount++;
-      agregarResultado('error', '❌', file.name, resultado.mensaje, resultado.detalle, resultado.valor);
+      agregarResultado('error', '❌', file.name.replace(/\.txt$/i, ''), resultado.mensaje, resultado.detalle, resultado.valor);
     }
 
     // Actualizar tarjeta inmediatamente
