@@ -279,47 +279,36 @@ async function startProcessing() {
 
             // ── Texto extra / fecha vencimiento ───────────────────
             // ── Texto extra / fecha vencimiento ───────────────────
-// ── Texto extra / fecha vencimiento ───────────────────
 if (textoExtra) {
+    // Extraer el texto del Concepto del fullText
     const matchConcepto = fullText.match(
         /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
     );
 
     let textoConcepto = '';
     if (matchConcepto && matchConcepto[1]) {
-        textoConcepto = matchConcepto[1]
-            .replace(/\s+/g, ' ')
-            .trim();
+        textoConcepto = matchConcepto[1].replace(/\s+/g, ' ').trim();
     }
 
-    const fontSize = 8;
-    const xInicioTextoConcepto = 62;
-    const margenDerecho = 10;
+    // ── NUEVA LÓGICA (ANTI-MONTAJE) ─────────────
+    // En lugar de calcular por caracteres, alineamos a la derecha SIEMPRE
 
-    // medir ancho real del texto visible
-    const anchoConcepto = helveticaFont.widthOfTextAtSize(textoConcepto, fontSize);
+    const anchoVencimiento = helveticaFont.widthOfTextAtSize(textoExtra, 8);
 
-    // dos espacios reales
-    const anchoDosEspacios = helveticaFont.widthOfTextAtSize('  ', fontSize);
+    const margenDerecho = 20; // puedes ajustar si quieres más pegado al borde
 
-    // ancho del texto vencimiento
-    const anchoTextoExtra = helveticaFont.widthOfTextAtSize(textoExtra, fontSize);
-
-    let xVencimiento = xInicioTextoConcepto + anchoConcepto + anchoDosEspacios;
-
-    // si se monta o se sale del ancho
-    if (xVencimiento + anchoTextoExtra > width - margenDerecho) {
-        xVencimiento = width - anchoTextoExtra - margenDerecho;
-    }
+    const xVencimiento = width - anchoVencimiento - margenDerecho;
 
     pagina.drawText(textoExtra, {
         x: xVencimiento,
         y: 638,
-        size: fontSize,
+        size: 8,
         font: helveticaFont,
         color: rgb(0, 0, 0)
     });
-}            // ── Imagen de firma ───────────────────────────────────
+}
+
+            // ── Imagen de firma ───────────────────────────────────
             let firmaImg;
             if (firmaFile.type.includes('png')) {
                 firmaImg = await pdf.embedPng(firmaBytes);
