@@ -214,7 +214,7 @@ async function startProcessing() {
             else                                   stats.ignored++;
 
             renderResult(result);
-            validationResults.push({ file, result });
+            validationResults.push({ file, result })
         } catch (err) {
             const errRes = { status: 'error', formattedName: 'ERROR', isValid: false,
                              message: `❌ No se pudo procesar: ${file.name}` };
