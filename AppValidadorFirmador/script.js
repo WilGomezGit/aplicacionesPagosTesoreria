@@ -279,6 +279,7 @@ async function startProcessing() {
 
             // ── Texto extra / fecha vencimiento ───────────────────
             // ── Texto extra / fecha vencimiento ───────────────────
+// ── Texto extra / fecha vencimiento ───────────────────
 if (textoExtra) {
     // Extraer todo el texto desde "Concepto:" hasta la siguiente sección
     const matchConcepto = fullText.match(
@@ -287,39 +288,42 @@ if (textoExtra) {
 
     let textoConceptoCompleto = '';
     if (matchConcepto && matchConcepto[1]) {
-        // Incluir "Concepto: " en el conteo total de caracteres
         textoConceptoCompleto = 'Concepto: ' + matchConcepto[1].replace(/\s+/g, ' ').trim();
     }
 
-    // ── CÁLCULO POR CONTEO DE CARACTERES ─────────────────
-    // x=20 es el margen izquierdo donde empieza "Concepto:" en el PDF
-    // 4.5 puntos PDF por carácter a size 8 (ajustable si queda corrido)
-    const xMargenIzquierdo = 20;
+    // Ancho promedio por carácter a size 8 en este PDF (ajustable)
     const anchoPorCaracter = 4.5;
+    const xMargenIzquierdo = 20;
+    const xInicioContenido = 62; // donde empieza el texto DESPUÉS de "Concepto: "
+    const margenDerecho    = width - 10;
+
+    // Calcular X si va en la misma línea
+    const anchoConcepto    = textoConceptoCompleto.length * anchoPorCaracter;
+    const anchoVencimiento = textoExtra.length * anchoPorCaracter;
     const dosEspacios      = 2 * anchoPorCaracter;
+    const xEnMismaLinea    = xMargenIzquierdo + anchoConcepto + dosEspacios;
 
     let xVencimiento;
-    if (textoConceptoCompleto.length > 0) {
-        xVencimiento = xMargenIzquierdo + (textoConceptoCompleto.length * anchoPorCaracter) + dosEspacios;
-    } else {
-        // Fallback si no detectó el concepto: alinear a la derecha
-        xVencimiento = width - (textoExtra.length * anchoPorCaracter) - 20;
-    }
+    let yVencimiento;
 
-    // Seguridad: si se pasa del ancho de página, ajustar al margen derecho
-    if (xVencimiento + (textoExtra.length * anchoPorCaracter) > width - 10) {
-        xVencimiento = width - (textoExtra.length * anchoPorCaracter) - 10;
+    if (xEnMismaLinea + anchoVencimiento <= margenDerecho) {
+        // ✅ Cabe en la misma línea → ponerlo después del concepto
+        xVencimiento = xEnMismaLinea;
+        yVencimiento = 638;
+    } else {
+        // ❌ No cabe → ponerlo en la línea de abajo alineado al contenido
+        xVencimiento = xInicioContenido;
+        yVencimiento = 628; // ~10 puntos abajo de la línea del concepto
     }
 
     pagina.drawText(textoExtra, {
         x: xVencimiento,
-        y: 638,
+        y: yVencimiento,
         size: 8,
         font: helveticaFont,
         color: rgb(0, 0, 0)
     });
 }
-
             // ── Imagen de firma ───────────────────────────────────
             let firmaImg;
             if (firmaFile.type.includes('png')) {
