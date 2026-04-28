@@ -295,7 +295,7 @@ async function startProcessing() {
                 }
 
                 const size = 8;
-                const margenDerecho = 20;
+                const margenDerecho = 40;
                 const xInicioConcepto = 62;
 
                 const anchoConcepto = helveticaFont.widthOfTextAtSize(textoConcepto, size);
