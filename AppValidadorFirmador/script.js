@@ -279,16 +279,44 @@ async function startProcessing() {
             // ── Texto extra / fecha vencimiento ──────────────────
             // ✅ CAMBIO: buscar "Concepto" en el fullText, medir sus caracteres
             // y poner el vencimiento justo después con 2 espacios
-            if (textoExtra) {
-                // Extraer la línea que contiene "Concepto:"
-                let lineaConcepto = '';
-                const lineas = fullText.split('\n');
-                for (const linea of lineas) {
-                    if (/concepto/i.test(linea)) {
-                        lineaConcepto = linea.trim();
-                        break;
-                    }
-                }
+            // ── Texto extra / fecha vencimiento ──────────────────
+if (textoExtra) {
+    // El fullText es texto plano con espacios. Extraer todo desde
+    // "Concepto" hasta la siguiente sección conocida
+    const matchConcepto = fullText.match(
+        /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
+    );
+
+    let lineaConcepto = '';
+    if (matchConcepto && matchConcepto[1]) {
+        lineaConcepto = 'Concepto: ' + matchConcepto[1].replace(/\s+/g, ' ').trim();
+    }
+
+    // Si no encontró nada, usar un ancho seguro basado en el ancho de página
+    // para poner el vencimiento al final de la línea
+    let xVencimiento;
+    if (lineaConcepto.length > 0) {
+        const anchoConcepto   = helveticaFont.widthOfTextAtSize(lineaConcepto, 8);
+        const espacioVenc     = helveticaFont.widthOfTextAtSize('  ', 8);
+        const xInicioConcepto = 20;
+        xVencimiento = xInicioConcepto + anchoConcepto + espacioVenc;
+        // Si se pasa del ancho de página, poner en nueva línea debajo
+        if (xVencimiento + helveticaFont.widthOfTextAtSize(textoExtra, 8) > width - 10) {
+            xVencimiento = xInicioConcepto;
+        }
+    } else {
+        // Fallback: poner a la derecha segura si no detectó concepto
+        xVencimiento = width - helveticaFont.widthOfTextAtSize(textoExtra, 8) - 20;
+    }
+
+    pagina.drawText(textoExtra, {
+        x: xVencimiento,
+        y: 638,
+        size: 8,
+        font: helveticaFont,
+        color: rgb(0, 0, 0)
+    });
+}
                 // Si el extractor no separa por \n, intentar con regex en texto plano
                 if (!lineaConcepto) {
                     const match = fullText.match(/concepto[:\s]*([\s\S]*?)(?:Cuenta Bancaria|Valor Consignado|$)/i);
