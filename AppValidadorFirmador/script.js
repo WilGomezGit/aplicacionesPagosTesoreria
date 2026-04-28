@@ -184,7 +184,6 @@ async function startProcessing() {
     const firmaFile = firmaInput.files[0];
     if (!firmaFile) { alert('Por favor, sube la imagen de firma antes de procesar.'); return; }
 
-    // FIX: leer firma una sola vez fuera del loop
     const firmaBytes = await firmaFile.arrayBuffer();
     const textoExtra = textoExtraInput.value.trim();
 
@@ -202,7 +201,7 @@ async function startProcessing() {
 
     const validationResults = [];
 
-    // ── Fase 1: Validar ───────────────────────────────────────
+    // ── FASE 1: VALIDAR ───────────────────────────────
     for (let i = 0; i < pendingFiles.length; i++) {
         const file = pendingFiles[i];
         try {
@@ -211,16 +210,24 @@ async function startProcessing() {
 
             if      (result.status === 'correct') stats.correct++;
             else if (result.status === 'error')   stats.error++;
-            else                                   stats.ignored++;
+            else                                  stats.ignored++;
 
             renderResult(result);
-            validationResults.push({ file, result })
+
+            // 🔥 GUARDAMOS fullText
+            validationResults.push({ file, result, fullText: text });
+
         } catch (err) {
-            const errRes = { status: 'error', formattedName: 'ERROR', isValid: false,
-                             message: `❌ No se pudo procesar: ${file.name}` };
+            const errRes = {
+                status: 'error',
+                formattedName: 'ERROR',
+                isValid: false,
+                message: `❌ No se pudo procesar: ${file.name}`
+            };
+
             stats.error++;
             renderResult(errRes);
-            validationResults.push({ file, result: errRes });
+            validationResults.push({ file, result: errRes, fullText: '' });
         }
 
         progressBar.value = i + 1;
@@ -229,91 +236,98 @@ async function startProcessing() {
         await yieldToUI();
     }
 
-    // ── ¿Continuar si hay errores? ────────────────────────────
+    // ── CONFIRMACIÓN SI HAY ERRORES ───────────────────
     if (stats.error > 0) {
         const ok = confirm(
-            `⚠️ Se encontraron ${stats.error} errores de validación.\n\n¿Deseas firmar y generar el PDF de todos modos?`
+            `⚠️ Se encontraron ${stats.error} errores.\n\n¿Deseas continuar?`
         );
         if (!ok) {
-            estadoLabel.innerHTML = '❌ Proceso cancelado por el usuario.';
-            btnClear.disabled    = false;
+            estadoLabel.innerHTML = '❌ Proceso cancelado.';
+            btnClear.disabled = false;
             btnValidate.disabled = false;
             return;
         }
     }
 
-    // ── Fase 2: Firmar y unir ─────────────────────────────────
-    estadoLabel.innerHTML = '⏳ Aplicando firmas y generando PDF final...';
+    // ── FASE 2: FIRMAR Y GENERAR ──────────────────────
+    estadoLabel.innerHTML = '⏳ Generando PDF final...';
 
     try {
-        validationResults.sort((a, b) => a.result.formattedName.localeCompare(b.result.formattedName));
+        validationResults.sort((a, b) =>
+            a.result.formattedName.localeCompare(b.result.formattedName)
+        );
+
         const mergedPdf = await PDFDocument.create();
 
         for (let i = 0; i < validationResults.length; i++) {
+
             const { file, result, fullText } = validationResults[i];
-            estadoLabel.innerHTML = `Firmando ${i + 1} / ${validationResults.length}...`;
+
+            estadoLabel.innerHTML = `Procesando ${i + 1} / ${validationResults.length}`;
 
             const bytes  = await file.arrayBuffer();
             const pdf    = await PDFDocument.load(bytes);
             const pagina = pdf.getPages()[0];
             const { width } = pagina.getSize();
-            const comprobante = result.formattedName;
 
-            // Texto comprobante (centrado)
-            pagina.drawText(comprobante, {
-                x: width / 2 - 40, y: 80, size: 14, color: rgb(0, 0, 0)
+            // 🔥 CREAR FUENTE
+            const helveticaFont = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+
+            // Texto comprobante
+            pagina.drawText(result.formattedName, {
+                x: width / 2 - 40,
+                y: 80,
+                size: 14,
+                font: helveticaFont,
+                color: rgb(0, 0, 0)
             });
 
-            // ── Texto extra / fecha vencimiento ───────────────────
-if (textoExtra) {
-    // Extraer el texto del Concepto del fullText
-    const matchConcepto = fullText.match(
-        /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
-    );
+            // ── TEXTO EXTRA INTELIGENTE ─────────────────
+            if (textoExtra) {
 
-    let textoConcepto = '';
-    if (matchConcepto && matchConcepto[1]) {
-        textoConcepto = matchConcepto[1].replace(/\s+/g, ' ').trim();
-    }
+                const matchConcepto = fullText.match(
+                    /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
+                );
 
-    const size = 8;
-    const margenDerecho = 20;
-    const xInicioConcepto = 62; // donde empieza el texto después de "Concepto:"
+                let textoConcepto = '';
+                if (matchConcepto && matchConcepto[1]) {
+                    textoConcepto = matchConcepto[1].replace(/\s+/g, ' ').trim();
+                }
 
-    // Anchos reales
-    const anchoConcepto = helveticaFont.widthOfTextAtSize(textoConcepto, size);
-    const anchoEspacios = helveticaFont.widthOfTextAtSize('  ', size);
-    const anchoVencimiento = helveticaFont.widthOfTextAtSize(textoExtra, size);
+                const size = 8;
+                const margenDerecho = 20;
+                const xInicioConcepto = 62;
 
-    // Posición ideal (alineado a la derecha)
-    let xVencimiento = width - margenDerecho - anchoVencimiento;
+                const anchoConcepto = helveticaFont.widthOfTextAtSize(textoConcepto, size);
+                const anchoEspacios = helveticaFont.widthOfTextAtSize('  ', size);
+                const anchoExtra    = helveticaFont.widthOfTextAtSize(textoExtra, size);
 
-    // Posición donde termina el concepto
-    const finConcepto = xInicioConcepto + anchoConcepto + anchoEspacios;
+                let xExtra = width - margenDerecho - anchoExtra;
 
-    // ── DECISIÓN INTELIGENTE ─────────────────────────
-    if (xVencimiento > finConcepto) {
-        // ✅ Cabe en la misma línea (no se monta)
-        pagina.drawText(textoExtra, {
-            x: xVencimiento,
-            y: 638,
-            size: size,
-            font: helveticaFont,
-            color: rgb(0, 0, 0)
-        });
-    } else {
-        // ❌ No cabe → lo bajamos a otra línea
-        pagina.drawText(textoExtra, {
-            x: xInicioConcepto,
-            y: 620, // debajo del concepto (ajusta si quieres)
-            size: size,
-            font: helveticaFont,
-            color: rgb(0, 0, 0)
-        });
-    }
-}
+                const finConcepto = xInicioConcepto + anchoConcepto + anchoEspacios;
 
-            // Imagen de firma
+                if (xExtra > finConcepto) {
+                    // MISMA LÍNEA
+                    pagina.drawText(textoExtra, {
+                        x: xExtra,
+                        y: 638,
+                        size,
+                        font: helveticaFont,
+                        color: rgb(0, 0, 0)
+                    });
+                } else {
+                    // ABAJO
+                    pagina.drawText(textoExtra, {
+                        x: xInicioConcepto,
+                        y: 620,
+                        size,
+                        font: helveticaFont,
+                        color: rgb(0, 0, 0)
+                    });
+                }
+            }
+
+            // Firma
             let firmaImg;
             if (firmaFile.type.includes('png')) {
                 firmaImg = await pdf.embedPng(firmaBytes);
@@ -321,47 +335,45 @@ if (textoExtra) {
                 firmaImg = await pdf.embedJpg(firmaBytes);
             }
 
-            pagina.drawImage(firmaImg, { x: 40, y: 330, width: 110, height: 130 });
+            pagina.drawImage(firmaImg, {
+                x: 40,
+                y: 330,
+                width: 110,
+                height: 130
+            });
 
-            // Copiar páginas al PDF unificado
             const paginas = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             paginas.forEach(p => mergedPdf.addPage(p));
 
             await yieldToUI();
         }
 
-        estadoLabel.innerHTML = 'Generando archivo final...';
         const pdfFinal = await mergedPdf.save();
 
-        // Liberar URL anterior
         if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
 
         const blob = new Blob([pdfFinal], { type: 'application/pdf' });
         lastBlobUrl = URL.createObjectURL(blob);
 
-        const downloadName = `comprobantesFirmados${fileCounter}.pdf`;
         const link = document.createElement('a');
-        link.href     = lastBlobUrl;
-        link.download = downloadName;
+        link.href = lastBlobUrl;
+        link.download = `comprobantesFirmados${fileCounter}.pdf`;
         link.click();
 
-        // Incrementar contador
         fileCounter++;
-        try { sessionStorage.setItem('pdfSignCounter', fileCounter.toString()); } catch (_) {}
 
-        estadoLabel.innerHTML = `✅ ${downloadName} generado correctamente.`;
+        estadoLabel.innerHTML = '✅ PDF generado correctamente';
         pendingFiles = [];
         updateDropZoneText();
 
     } catch (err) {
         console.error(err);
-        estadoLabel.innerHTML = '❌ Error durante la generación del PDF con firma.';
+        estadoLabel.innerHTML = '❌ Error al generar PDF';
     }
 
-    btnClear.disabled    = false;
+    btnClear.disabled = false;
     btnValidate.disabled = pendingFiles.length === 0;
 }
-
 // ── UI Helpers ────────────────────────────────────────────────
 function renderResult(result) {
     const li = document.createElement('li');
