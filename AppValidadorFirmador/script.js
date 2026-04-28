@@ -210,13 +210,13 @@ async function startProcessing() {
             else                                   stats.ignored++;
 
             renderResult(result);
-            validationResults.push({ file, result, fullText: text }); // ✅ CAMBIO: guardar fullText
+            validationResults.push({ file, result, fullText: text });
         } catch (err) {
             const errRes = { status: 'error', formattedName: 'ERROR', isValid: false,
                              message: `❌ No se pudo procesar: ${file.name}` };
             stats.error++;
             renderResult(errRes);
-            validationResults.push({ file, result: errRes, fullText: '' }); // ✅ CAMBIO: guardar fullText vacío en error
+            validationResults.push({ file, result: errRes, fullText: '' });
         }
 
         progressBar.value = i + 1;
@@ -247,7 +247,7 @@ async function startProcessing() {
         const mergedPdf = await PDFDocument.create();
 
         for (let i = 0; i < validationResults.length; i++) {
-            const { file, result, fullText } = validationResults[i]; // ✅ CAMBIO: desestructurar fullText
+            const { file, result, fullText } = validationResults[i];
 
             estadoLabel.innerHTML = `Firmando ${i + 1} / ${validationResults.length}...`;
 
@@ -257,9 +257,10 @@ async function startProcessing() {
             const { width } = pagina.getSize();
             const comprobante = result.formattedName;
 
-            // ── Texto comprobante — tamaño y posición adaptativa ──
+            // ── Fuente ────────────────────────────────────────────
             const helveticaFont = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
 
+            // ── Texto comprobante (CER-XXXXX) centrado abajo ──────
             let fSize = 14;
             const maxW = width - 40;
             while (fSize > 6 && helveticaFont.widthOfTextAtSize(comprobante, fSize) > maxW) {
@@ -276,65 +277,39 @@ async function startProcessing() {
                 color: rgb(0, 0, 0)
             });
 
-            // ── Texto extra / fecha vencimiento ──────────────────
-            // ✅ CAMBIO: buscar "Concepto" en el fullText, medir sus caracteres
-            // y poner el vencimiento justo después con 2 espacios
-            // ── Texto extra / fecha vencimiento ──────────────────
-if (textoExtra) {
-    // El fullText es texto plano con espacios. Extraer todo desde
-    // "Concepto" hasta la siguiente sección conocida
-    const matchConcepto = fullText.match(
-        /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
-    );
+            // ── Texto extra / fecha vencimiento ───────────────────
+            if (textoExtra) {
+                // Buscar en el fullText el texto desde "Concepto:" hasta
+                // la siguiente sección conocida del comprobante
+                const matchConcepto = fullText.match(
+                    /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
+                );
 
-    let lineaConcepto = '';
-    if (matchConcepto && matchConcepto[1]) {
-        lineaConcepto = 'Concepto: ' + matchConcepto[1].replace(/\s+/g, ' ').trim();
-    }
-
-    // Si no encontró nada, usar un ancho seguro basado en el ancho de página
-    // para poner el vencimiento al final de la línea
-    let xVencimiento;
-    if (lineaConcepto.length > 0) {
-        const anchoConcepto   = helveticaFont.widthOfTextAtSize(lineaConcepto, 8);
-        const espacioVenc     = helveticaFont.widthOfTextAtSize('  ', 8);
-        const xInicioConcepto = 20;
-        xVencimiento = xInicioConcepto + anchoConcepto + espacioVenc;
-        // Si se pasa del ancho de página, poner en nueva línea debajo
-        if (xVencimiento + helveticaFont.widthOfTextAtSize(textoExtra, 8) > width - 10) {
-            xVencimiento = xInicioConcepto;
-        }
-    } else {
-        // Fallback: poner a la derecha segura si no detectó concepto
-        xVencimiento = width - helveticaFont.widthOfTextAtSize(textoExtra, 8) - 20;
-    }
-
-    pagina.drawText(textoExtra, {
-        x: xVencimiento,
-        y: 638,
-        size: 8,
-        font: helveticaFont,
-        color: rgb(0, 0, 0)
-    });
-}
-                // Si el extractor no separa por \n, intentar con regex en texto plano
-                if (!lineaConcepto) {
-                    const match = fullText.match(/concepto[:\s]*([\s\S]*?)(?:Cuenta Bancaria|Valor Consignado|$)/i);
-                    if (match) lineaConcepto = 'Concepto: ' + match[1].replace(/\s+/g, ' ').trim();
+                let lineaConcepto = '';
+                if (matchConcepto && matchConcepto[1]) {
+                    lineaConcepto = 'Concepto: ' + matchConcepto[1].replace(/\s+/g, ' ').trim();
                 }
 
-                // Medir el ancho real de la línea del concepto con size 8
-                const anchoConcepto  = lineaConcepto.length > 0
-                    ? helveticaFont.widthOfTextAtSize(lineaConcepto, 8)
-                    : 0;
-                const espacioVenc    = helveticaFont.widthOfTextAtSize('  ', 8); // 2 espacios
-                const xInicioConcepto = 20; // margen izquierdo del PDF donde empieza "Concepto:"
-                const xVencimiento   = xInicioConcepto + anchoConcepto + espacioVenc;
+                let xVencimiento;
+                if (lineaConcepto.length > 0) {
+                    const anchoConcepto    = helveticaFont.widthOfTextAtSize(lineaConcepto, 8);
+                    const espacioVenc      = helveticaFont.widthOfTextAtSize('  ', 8);
+                    const xInicioConcepto  = 20;
+                    xVencimiento = xInicioConcepto + anchoConcepto + espacioVenc;
+
+                    // Si se sale del ancho de página, colocar al inicio de esa misma Y
+                    if (xVencimiento + helveticaFont.widthOfTextAtSize(textoExtra, 8) > width - 10) {
+                        xVencimiento = xInicioConcepto;
+                    }
+                } else {
+                    // Fallback: alinear a la derecha si no se detectó el concepto
+                    xVencimiento = width - helveticaFont.widthOfTextAtSize(textoExtra, 8) - 20;
+                }
 
                 pagina.drawText(textoExtra, {
                     x: xVencimiento,
-                    y: 638,          // Y original de la fila Concepto
-                    size: 8,         // tamaño original
+                    y: 638,
+                    size: 8,
                     font: helveticaFont,
                     color: rgb(0, 0, 0)
                 });
