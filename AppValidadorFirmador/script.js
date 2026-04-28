@@ -259,10 +259,26 @@ async function startProcessing() {
             const { width } = pagina.getSize();
             const comprobante = result.formattedName;
 
-            // Texto comprobante (centrado)
-            pagina.drawText(comprobante, {
-                x: width / 2 - 40, y: 80, size: 14, color: rgb(0, 0, 0)
-            });
+           // Texto comprobante — tamaño y posición adaptativa
+const helveticaFont = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+const { height: pageHeight } = pagina.getSize();
+
+let fSize = 14;
+const maxW = width - 40; // margen 20px a cada lado
+// Reducir fuente hasta que quepa en una línea
+while (fSize > 6 && helveticaFont.widthOfTextAtSize(comprobante, fSize) > maxW) {
+    fSize -= 0.5;
+}
+const textW = helveticaFont.widthOfTextAtSize(comprobante, fSize);
+const xCentrado = (width - textW) / 2;
+
+pagina.drawText(comprobante, {
+    x: xCentrado,
+    y: 80,
+    size: fSize,
+    font: helveticaFont,
+    color: rgb(0, 0, 0)
+});
 
             // Texto extra / fecha vencimiento
             if (textoExtra) {
