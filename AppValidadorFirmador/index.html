@@ -75,22 +75,22 @@
         /* FIX PRINCIPAL: el global CSS aplica width:185px a todos los button.
            Aquí lo sobreescribimos específicamente para el botón de limpiar firma. */
         button.btn-clear-sig {
-            background: #f8f9fa;
-            border: 1px solid #ced4da;
-            color: #888;
-            padding: 6px 10px;
-            width: auto !important;
-            min-width: unset;
-            flex-shrink: 0;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        button.btn-clear-sig:hover {
-            border-color: #dc3545;
-            color: #dc3545;
-            background: #fff5f5;
-        }
+    background: #fff5f5;
+    border: 1px solid #dc3545;
+    color: #dc3545; /* 🔥 ROJO */
+    padding: 6px 10px;
+    width: auto !important;
+    min-width: unset;
+    flex-shrink: 0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+       button.btn-clear-sig:hover {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
 
         /* ── Drop zone ── */
         .drop-zone {
