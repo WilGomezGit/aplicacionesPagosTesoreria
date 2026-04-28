@@ -280,12 +280,22 @@ pagina.drawText(comprobante, {
     color: rgb(0, 0, 0)
 });
 
-            // Texto extra / fecha vencimiento
-            if (textoExtra) {
-                pagina.drawText(textoExtra, {
-                    x: 380, y: 638, size: 8, color: rgb(0, 0, 0)
-                });
-            }
+           // Texto extra / fecha vencimiento — posicionado justo después del concepto
+if (textoExtra) {
+    // Misma fuente y tamaño que el comprobante para medir bien
+    const comprobanteFSize = fSize;          // ya calculado arriba
+    const comprobanteW = textW;              // ya calculado arriba (widthOfTextAtSize)
+    const espacioExtra = helveticaFont.widthOfTextAtSize('  ', comprobanteFSize); // 2 espacios
+    const xVencimiento = xCentrado + comprobanteW + espacioExtra;
+
+    pagina.drawText(textoExtra, {
+        x: xVencimiento,
+        y: 80,                               // misma línea Y que el comprobante
+        size: comprobanteFSize,              // misma fuente para que quede alineado
+        font: helveticaFont,
+        color: rgb(0, 0, 0)
+    });
+}
 
             // Imagen de firma
             let firmaImg;
