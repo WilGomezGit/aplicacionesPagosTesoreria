@@ -250,7 +250,7 @@ async function startProcessing() {
         const mergedPdf = await PDFDocument.create();
 
         for (let i = 0; i < validationResults.length; i++) {
-            const { file, result } = validationResults[i];
+            const { file, result, fullText } = validationResults[i];
             estadoLabel.innerHTML = `Firmando ${i + 1} / ${validationResults.length}...`;
 
             const bytes  = await file.arrayBuffer();
