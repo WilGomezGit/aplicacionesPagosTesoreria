@@ -281,43 +281,45 @@ async function startProcessing() {
             // ── Texto extra / fecha vencimiento ───────────────────
 // ── Texto extra / fecha vencimiento ───────────────────
 if (textoExtra) {
-    // Extraer el texto del Concepto del fullText
-    // (todo desde "Concepto:" hasta la siguiente sección conocida)
     const matchConcepto = fullText.match(
         /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
     );
 
     let textoConcepto = '';
     if (matchConcepto && matchConcepto[1]) {
-        textoConcepto = matchConcepto[1].replace(/\s+/g, ' ').trim();
+        textoConcepto = matchConcepto[1]
+            .replace(/\s+/g, ' ')
+            .trim();
     }
 
-    // ── CÁLCULO POR ANCHO REAL DEL TEXTO ─────────────
-    const xInicioTextoConcepto = 62;  // donde empieza el texto después de "Concepto:"
+    const fontSize = 8;
+    const xInicioTextoConcepto = 62;
+    const margenDerecho = 10;
 
-    // ancho REAL del texto del concepto
-    const anchoTextoConcepto = helveticaFont.widthOfTextAtSize(textoConcepto, 8);
+    // medir ancho real del texto visible
+    const anchoConcepto = helveticaFont.widthOfTextAtSize(textoConcepto, fontSize);
 
-    // ancho REAL de dos espacios
-    const anchoDosEspacios = helveticaFont.widthOfTextAtSize('  ', 8);
+    // dos espacios reales
+    const anchoDosEspacios = helveticaFont.widthOfTextAtSize('  ', fontSize);
 
-    let xVencimiento = xInicioTextoConcepto + anchoTextoConcepto + anchoDosEspacios;
+    // ancho del texto vencimiento
+    const anchoTextoExtra = helveticaFont.widthOfTextAtSize(textoExtra, fontSize);
 
-    // Seguridad: si se sale del ancho de página, ajustar al margen derecho
-    const anchoVencimiento = helveticaFont.widthOfTextAtSize(textoExtra, 8);
-    if (xVencimiento + anchoVencimiento > width - 10) {
-        xVencimiento = width - anchoVencimiento - 10;
+    let xVencimiento = xInicioTextoConcepto + anchoConcepto + anchoDosEspacios;
+
+    // si se monta o se sale del ancho
+    if (xVencimiento + anchoTextoExtra > width - margenDerecho) {
+        xVencimiento = width - anchoTextoExtra - margenDerecho;
     }
 
     pagina.drawText(textoExtra, {
         x: xVencimiento,
         y: 638,
-        size: 8,
+        size: fontSize,
         font: helveticaFont,
         color: rgb(0, 0, 0)
     });
-}
-            // ── Imagen de firma ───────────────────────────────────
+}            // ── Imagen de firma ───────────────────────────────────
             let firmaImg;
             if (firmaFile.type.includes('png')) {
                 firmaImg = await pdf.embedPng(firmaBytes);
