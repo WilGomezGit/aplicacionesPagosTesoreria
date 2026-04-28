@@ -278,46 +278,47 @@ async function startProcessing() {
             });
 
             // ── Texto extra / fecha vencimiento ───────────────────
-            if (textoExtra) {
-                // Extraer el texto del Concepto del fullText
-                // (todo desde "Concepto:" hasta la siguiente sección conocida)
-                const matchConcepto = fullText.match(
-                    /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
-                );
+            // ── Texto extra / fecha vencimiento ───────────────────
+if (textoExtra) {
+    // Extraer todo el texto desde "Concepto:" hasta la siguiente sección
+    const matchConcepto = fullText.match(
+        /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
+    );
 
-                let textoConcepto = '';
-                if (matchConcepto && matchConcepto[1]) {
-                    textoConcepto = matchConcepto[1].replace(/\s+/g, ' ').trim();
-                }
+    let textoConceptoCompleto = '';
+    if (matchConcepto && matchConcepto[1]) {
+        // Incluir "Concepto: " en el conteo total de caracteres
+        textoConceptoCompleto = 'Concepto: ' + matchConcepto[1].replace(/\s+/g, ' ').trim();
+    }
 
-                // ── CÁLCULO POR CONTEO DE CARACTERES ─────────────
-                // En Helvetica size 8, el ancho promedio por carácter es ~4.5 puntos PDF.
-                // "Concepto: " (10 chars con espacio) ocupa el margen izquierdo fijo del PDF.
-                // Ajustamos con el valor medido de tu PDF: x inicial del concepto = 20 pts,
-                // "Concepto: " en el PDF original mide aprox 42 pts a la fuente del comprobante.
-                // Para el texto que sigue (el contenido), usamos 4.5 pts/carácter a size 8.
+    // ── CÁLCULO POR CONTEO DE CARACTERES ─────────────────
+    // x=20 es el margen izquierdo donde empieza "Concepto:" en el PDF
+    // 4.5 puntos PDF por carácter a size 8 (ajustable si queda corrido)
+    const xMargenIzquierdo = 20;
+    const anchoPorCaracter = 4.5;
+    const dosEspacios      = 2 * anchoPorCaracter;
 
-                const xInicioTextoConcepto = 62;  // x donde empieza el texto DESPUÉS de "Concepto: "
-                const anchoPorCaracter     = 4.5; // puntos PDF por carácter a size 8 en ese PDF
-                const anchoTextoConcepto   = textoConcepto.length * anchoPorCaracter;
-                const dosEspacios          = 2 * anchoPorCaracter;
+    let xVencimiento;
+    if (textoConceptoCompleto.length > 0) {
+        xVencimiento = xMargenIzquierdo + (textoConceptoCompleto.length * anchoPorCaracter) + dosEspacios;
+    } else {
+        // Fallback si no detectó el concepto: alinear a la derecha
+        xVencimiento = width - (textoExtra.length * anchoPorCaracter) - 20;
+    }
 
-                let xVencimiento = xInicioTextoConcepto + anchoTextoConcepto + dosEspacios;
+    // Seguridad: si se pasa del ancho de página, ajustar al margen derecho
+    if (xVencimiento + (textoExtra.length * anchoPorCaracter) > width - 10) {
+        xVencimiento = width - (textoExtra.length * anchoPorCaracter) - 10;
+    }
 
-                // Seguridad: si se sale del ancho de página, ajustar al margen derecho
-                const anchoVencimiento = textoExtra.length * anchoPorCaracter;
-                if (xVencimiento + anchoVencimiento > width - 10) {
-                    xVencimiento = width - anchoVencimiento - 10;
-                }
-
-                pagina.drawText(textoExtra, {
-                    x: xVencimiento,
-                    y: 638,
-                    size: 8,
-                    font: helveticaFont,
-                    color: rgb(0, 0, 0)
-                });
-            }
+    pagina.drawText(textoExtra, {
+        x: xVencimiento,
+        y: 638,
+        size: 8,
+        font: helveticaFont,
+        color: rgb(0, 0, 0)
+    });
+}
 
             // ── Imagen de firma ───────────────────────────────────
             let firmaImg;
