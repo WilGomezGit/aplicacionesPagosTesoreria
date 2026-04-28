@@ -38,24 +38,24 @@ const VALIDATION_RULES = [
 // ── Estado ────────────────────────────────────────────────────
 let pendingFiles = [];
 let stats = { correct: 0, error: 0, ignored: 0 };
-let fileCounter = 1;   // FIX: usar variable en memoria en lugar de localStorage
+let fileCounter = 1;
 let lastBlobUrl = null;
 
 // ── DOM ───────────────────────────────────────────────────────
-const dropZone        = document.getElementById('drop-zone');
-const fileInput       = document.getElementById('file-input');
-const btnValidate     = document.getElementById('btn-validate');
-const btnClear        = document.getElementById('btn-clear');
-const btnClearFirma   = document.getElementById('btn-clear-firma');
-const resultsList     = document.getElementById('results-list');
-const firmaInput      = document.getElementById('firma-input');
-const textoExtraInput = document.getElementById('textoExtra-input');
-const estadoLabel     = document.getElementById('status');
+const dropZone          = document.getElementById('drop-zone');
+const fileInput         = document.getElementById('file-input');
+const btnValidate       = document.getElementById('btn-validate');
+const btnClear          = document.getElementById('btn-clear');
+const btnClearFirma     = document.getElementById('btn-clear-firma');
+const resultsList       = document.getElementById('results-list');
+const firmaInput        = document.getElementById('firma-input');
+const textoExtraInput   = document.getElementById('textoExtra-input');
+const estadoLabel       = document.getElementById('status');
 const progressContainer = document.getElementById('progress-container');
-const progressBar     = document.getElementById('progress-bar');
-const progressText    = document.getElementById('progress-text');
+const progressBar       = document.getElementById('progress-bar');
+const progressText      = document.getElementById('progress-text');
 
-// ── Intentar recuperar contador de sessionStorage (más seguro) ──
+// ── Intentar recuperar contador de sessionStorage ──
 try {
     const saved = sessionStorage.getItem('pdfSignCounter');
     if (saved) fileCounter = parseInt(saved, 10) || 1;
@@ -80,7 +80,6 @@ function handleFiles(files) {
     const pdfs = Array.from(files).filter(f => f.type === 'application/pdf');
     if (pdfs.length === 0) { alert('Por favor, selecciona solo archivos PDF.'); return; }
 
-    // Evitar duplicados por nombre+tamaño
     const nuevos = pdfs.filter(
         nf => !pendingFiles.some(f => f.name === nf.name && f.size === nf.size)
     );
@@ -103,12 +102,11 @@ function resetPDFs() {
     updateStatsUI();
     resultsList.innerHTML = '';
     btnValidate.disabled = true;
-    btnClear.disabled = false;   // FIX: nunca dejar bloqueado
+    btnClear.disabled = false;
     fileInput.value = '';
     progressContainer.style.display = 'none';
     estadoLabel.innerHTML = '';
     updateDropZoneText();
-
     if (lastBlobUrl) { URL.revokeObjectURL(lastBlobUrl); lastBlobUrl = null; }
 }
 
@@ -184,7 +182,6 @@ async function startProcessing() {
     const firmaFile = firmaInput.files[0];
     if (!firmaFile) { alert('Por favor, sube la imagen de firma antes de procesar.'); return; }
 
-    // FIX: leer firma una sola vez fuera del loop
     const firmaBytes = await firmaFile.arrayBuffer();
     const textoExtra = textoExtraInput.value.trim();
 
@@ -197,7 +194,6 @@ async function startProcessing() {
     progressContainer.style.display = 'block';
     progressBar.max   = pendingFiles.length;
     progressBar.value = 0;
-
     estadoLabel.innerHTML = '⏳ Validando comprobantes...';
 
     const validationResults = [];
@@ -214,13 +210,13 @@ async function startProcessing() {
             else                                   stats.ignored++;
 
             renderResult(result);
-            validationResults.push({ file, result });
+            validationResults.push({ file, result, fullText: text }); // ✅ CAMBIO: guardar fullText
         } catch (err) {
             const errRes = { status: 'error', formattedName: 'ERROR', isValid: false,
                              message: `❌ No se pudo procesar: ${file.name}` };
             stats.error++;
             renderResult(errRes);
-            validationResults.push({ file, result: errRes });
+            validationResults.push({ file, result: errRes, fullText: '' }); // ✅ CAMBIO: guardar fullText vacío en error
         }
 
         progressBar.value = i + 1;
@@ -247,10 +243,12 @@ async function startProcessing() {
 
     try {
         validationResults.sort((a, b) => a.result.formattedName.localeCompare(b.result.formattedName));
+
         const mergedPdf = await PDFDocument.create();
 
         for (let i = 0; i < validationResults.length; i++) {
-            const { file, result } = validationResults[i];
+            const { file, result, fullText } = validationResults[i]; // ✅ CAMBIO: desestructurar fullText
+
             estadoLabel.innerHTML = `Firmando ${i + 1} / ${validationResults.length}...`;
 
             const bytes  = await file.arrayBuffer();
@@ -259,80 +257,71 @@ async function startProcessing() {
             const { width } = pagina.getSize();
             const comprobante = result.formattedName;
 
-           // Texto comprobante — tamaño y posición adaptativa
-const helveticaFont = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
-const { height: pageHeight } = pagina.getSize();
+            // ── Texto comprobante — tamaño y posición adaptativa ──
+            const helveticaFont = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
 
-let fSize = 14;
-const maxW = width - 40; // margen 20px a cada lado
-// Reducir fuente hasta que quepa en una línea
-while (fSize > 6 && helveticaFont.widthOfTextAtSize(comprobante, fSize) > maxW) {
-    fSize -= 0.5;
-}
-const textW = helveticaFont.widthOfTextAtSize(comprobante, fSize);
-const xCentrado = (width - textW) / 2;
-
-pagina.drawText(comprobante, {
-    x: xCentrado,
-    y: 80,
-    size: fSize,
-    font: helveticaFont,
-    color: rgb(0, 0, 0)
-});
-
-        // Texto extra / fecha vencimiento — posicionado después del concepto real del PDF
-if (textoExtra) {
-    // Usar pdf.js (ya cargado) para leer las posiciones del texto en la página
-    const pdfjsDoc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-    const pdfjsPage = await pdfjsDoc.getPage(1);
-    const tc = await pdfjsPage.getTextContent();
-    const vp = pdfjsPage.getViewport({ scale: 1 });
-
-    // Buscar el ítem de texto más a la derecha en la fila del Concepto
-    // El Concepto está aprox al 85-90% de la altura (y normalizada ~ 0.85–0.92)
-    // Filtramos los ítems que estén en esa franja vertical
-    const alturaRelMin = 0.82;
-    const alturaRelMax = 0.95;
-    let xFinalConcepto = 0;
-    let yConceptoPDF = 638; // valor por defecto si no se encuentra
-
-    for (const item of tc.items) {
-        const [, , , , tx, ty] = item.transform;
-        const yRel = ty / vp.height;
-        if (yRel >= alturaRelMin && yRel <= alturaRelMax) {
-            const xDerecha = tx + item.width;
-            if (xDerecha > xFinalConcepto) {
-                xFinalConcepto = xDerecha;
-                // Convertir Y de pdf.js (origen abajo-izq) a pdf-lib (mismo origen)
-                yConceptoPDF = ty;
+            let fSize = 14;
+            const maxW = width - 40;
+            while (fSize > 6 && helveticaFont.widthOfTextAtSize(comprobante, fSize) > maxW) {
+                fSize -= 0.5;
             }
-        }
-    }
-    await pdfjsDoc.destroy();
+            const textW     = helveticaFont.widthOfTextAtSize(comprobante, fSize);
+            const xCentrado = (width - textW) / 2;
 
-    // Espacio de 2 caracteres con la fuente del vencimiento (size 8)
-    const espacioVenc = helveticaFont.widthOfTextAtSize('  ', 8);
+            pagina.drawText(comprobante, {
+                x: xCentrado,
+                y: 80,
+                size: fSize,
+                font: helveticaFont,
+                color: rgb(0, 0, 0)
+            });
 
-    pagina.drawText(textoExtra, {
-        x: xFinalConcepto + espacioVenc,
-        y: yConceptoPDF,
-        size: 8,                   // tamaño original
-        font: helveticaFont,
-        color: rgb(0, 0, 0)
-    });
-}
+            // ── Texto extra / fecha vencimiento ──────────────────
+            // ✅ CAMBIO: buscar "Concepto" en el fullText, medir sus caracteres
+            // y poner el vencimiento justo después con 2 espacios
+            if (textoExtra) {
+                // Extraer la línea que contiene "Concepto:"
+                let lineaConcepto = '';
+                const lineas = fullText.split('\n');
+                for (const linea of lineas) {
+                    if (/concepto/i.test(linea)) {
+                        lineaConcepto = linea.trim();
+                        break;
+                    }
+                }
+                // Si el extractor no separa por \n, intentar con regex en texto plano
+                if (!lineaConcepto) {
+                    const match = fullText.match(/concepto[:\s]*([\s\S]*?)(?:Cuenta Bancaria|Valor Consignado|$)/i);
+                    if (match) lineaConcepto = 'Concepto: ' + match[1].replace(/\s+/g, ' ').trim();
+                }
 
-            // Imagen de firma
+                // Medir el ancho real de la línea del concepto con size 8
+                const anchoConcepto  = lineaConcepto.length > 0
+                    ? helveticaFont.widthOfTextAtSize(lineaConcepto, 8)
+                    : 0;
+                const espacioVenc    = helveticaFont.widthOfTextAtSize('  ', 8); // 2 espacios
+                const xInicioConcepto = 20; // margen izquierdo del PDF donde empieza "Concepto:"
+                const xVencimiento   = xInicioConcepto + anchoConcepto + espacioVenc;
+
+                pagina.drawText(textoExtra, {
+                    x: xVencimiento,
+                    y: 638,          // Y original de la fila Concepto
+                    size: 8,         // tamaño original
+                    font: helveticaFont,
+                    color: rgb(0, 0, 0)
+                });
+            }
+
+            // ── Imagen de firma ───────────────────────────────────
             let firmaImg;
             if (firmaFile.type.includes('png')) {
                 firmaImg = await pdf.embedPng(firmaBytes);
             } else {
                 firmaImg = await pdf.embedJpg(firmaBytes);
             }
-
             pagina.drawImage(firmaImg, { x: 40, y: 330, width: 110, height: 130 });
 
-            // Copiar páginas al PDF unificado
+            // ── Copiar páginas al PDF unificado ───────────────────
             const paginas = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             paginas.forEach(p => mergedPdf.addPage(p));
 
@@ -342,9 +331,7 @@ if (textoExtra) {
         estadoLabel.innerHTML = 'Generando archivo final...';
         const pdfFinal = await mergedPdf.save();
 
-        // Liberar URL anterior
         if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
-
         const blob = new Blob([pdfFinal], { type: 'application/pdf' });
         lastBlobUrl = URL.createObjectURL(blob);
 
@@ -354,7 +341,6 @@ if (textoExtra) {
         link.download = downloadName;
         link.click();
 
-        // Incrementar contador
         fileCounter++;
         try { sessionStorage.setItem('pdfSignCounter', fileCounter.toString()); } catch (_) {}
 
@@ -387,7 +373,6 @@ function updateStatsUI() {
     if (el('count-ignored')) el('count-ignored').textContent = stats.ignored;
 }
 
-/** Cede control al navegador para actualizar la UI */
 function yieldToUI() {
     return new Promise(resolve => setTimeout(resolve, 0));
 }
