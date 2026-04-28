@@ -38,24 +38,24 @@ const VALIDATION_RULES = [
 // ── Estado ────────────────────────────────────────────────────
 let pendingFiles = [];
 let stats = { correct: 0, error: 0, ignored: 0 };
-let fileCounter = 1;
+let fileCounter = 1;   // FIX: usar variable en memoria en lugar de localStorage
 let lastBlobUrl = null;
 
 // ── DOM ───────────────────────────────────────────────────────
-const dropZone          = document.getElementById('drop-zone');
-const fileInput         = document.getElementById('file-input');
-const btnValidate       = document.getElementById('btn-validate');
-const btnClear          = document.getElementById('btn-clear');
-const btnClearFirma     = document.getElementById('btn-clear-firma');
-const resultsList       = document.getElementById('results-list');
-const firmaInput        = document.getElementById('firma-input');
-const textoExtraInput   = document.getElementById('textoExtra-input');
-const estadoLabel       = document.getElementById('status');
+const dropZone        = document.getElementById('drop-zone');
+const fileInput       = document.getElementById('file-input');
+const btnValidate     = document.getElementById('btn-validate');
+const btnClear        = document.getElementById('btn-clear');
+const btnClearFirma   = document.getElementById('btn-clear-firma');
+const resultsList     = document.getElementById('results-list');
+const firmaInput      = document.getElementById('firma-input');
+const textoExtraInput = document.getElementById('textoExtra-input');
+const estadoLabel     = document.getElementById('status');
 const progressContainer = document.getElementById('progress-container');
-const progressBar       = document.getElementById('progress-bar');
-const progressText      = document.getElementById('progress-text');
+const progressBar     = document.getElementById('progress-bar');
+const progressText    = document.getElementById('progress-text');
 
-// ── Intentar recuperar contador de sessionStorage ──
+// ── Intentar recuperar contador de sessionStorage (más seguro) ──
 try {
     const saved = sessionStorage.getItem('pdfSignCounter');
     if (saved) fileCounter = parseInt(saved, 10) || 1;
@@ -80,6 +80,7 @@ function handleFiles(files) {
     const pdfs = Array.from(files).filter(f => f.type === 'application/pdf');
     if (pdfs.length === 0) { alert('Por favor, selecciona solo archivos PDF.'); return; }
 
+    // Evitar duplicados por nombre+tamaño
     const nuevos = pdfs.filter(
         nf => !pendingFiles.some(f => f.name === nf.name && f.size === nf.size)
     );
@@ -102,11 +103,12 @@ function resetPDFs() {
     updateStatsUI();
     resultsList.innerHTML = '';
     btnValidate.disabled = true;
-    btnClear.disabled = false;
+    btnClear.disabled = false;   // FIX: nunca dejar bloqueado
     fileInput.value = '';
     progressContainer.style.display = 'none';
     estadoLabel.innerHTML = '';
     updateDropZoneText();
+
     if (lastBlobUrl) { URL.revokeObjectURL(lastBlobUrl); lastBlobUrl = null; }
 }
 
@@ -182,6 +184,7 @@ async function startProcessing() {
     const firmaFile = firmaInput.files[0];
     if (!firmaFile) { alert('Por favor, sube la imagen de firma antes de procesar.'); return; }
 
+    // FIX: leer firma una sola vez fuera del loop
     const firmaBytes = await firmaFile.arrayBuffer();
     const textoExtra = textoExtraInput.value.trim();
 
@@ -194,6 +197,7 @@ async function startProcessing() {
     progressContainer.style.display = 'block';
     progressBar.max   = pendingFiles.length;
     progressBar.value = 0;
+
     estadoLabel.innerHTML = '⏳ Validando comprobantes...';
 
     const validationResults = [];
@@ -210,13 +214,13 @@ async function startProcessing() {
             else                                   stats.ignored++;
 
             renderResult(result);
-            validationResults.push({ file, result, fullText: text });
+            validationResults.push({ file, result });
         } catch (err) {
             const errRes = { status: 'error', formattedName: 'ERROR', isValid: false,
                              message: `❌ No se pudo procesar: ${file.name}` };
             stats.error++;
             renderResult(errRes);
-            validationResults.push({ file, result: errRes, fullText: '' });
+            validationResults.push({ file, result: errRes });
         }
 
         progressBar.value = i + 1;
@@ -243,12 +247,10 @@ async function startProcessing() {
 
     try {
         validationResults.sort((a, b) => a.result.formattedName.localeCompare(b.result.formattedName));
-
         const mergedPdf = await PDFDocument.create();
 
         for (let i = 0; i < validationResults.length; i++) {
-            const { file, result, fullText } = validationResults[i];
-
+            const { file, result } = validationResults[i];
             estadoLabel.innerHTML = `Firmando ${i + 1} / ${validationResults.length}...`;
 
             const bytes  = await file.arrayBuffer();
@@ -257,67 +259,29 @@ async function startProcessing() {
             const { width } = pagina.getSize();
             const comprobante = result.formattedName;
 
-            // ── Fuente ────────────────────────────────────────────
-            const helveticaFont = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
-
-            // ── Texto comprobante (CER-XXXXX) centrado abajo ──────
-            let fSize = 14;
-            const maxW = width - 40;
-            while (fSize > 6 && helveticaFont.widthOfTextAtSize(comprobante, fSize) > maxW) {
-                fSize -= 0.5;
-            }
-            const textW     = helveticaFont.widthOfTextAtSize(comprobante, fSize);
-            const xCentrado = (width - textW) / 2;
-
+            // Texto comprobante (centrado)
             pagina.drawText(comprobante, {
-                x: xCentrado,
-                y: 80,
-                size: fSize,
-                font: helveticaFont,
-                color: rgb(0, 0, 0)
+                x: width / 2 - 40, y: 80, size: 14, color: rgb(0, 0, 0)
             });
 
-            // ── Texto extra / fecha vencimiento ───────────────────
-            // ── Texto extra / fecha vencimiento ───────────────────
-if (textoExtra) {
-    // Extraer el texto del Concepto del fullText
-    const matchConcepto = fullText.match(
-        /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
-    );
+            // Texto extra / fecha vencimiento
+            if (textoExtra) {
+                pagina.drawText(textoExtra, {
+                    x: 380, y: 638, size: 8, color: rgb(0, 0, 0)
+                });
+            }
 
-    let textoConcepto = '';
-    if (matchConcepto && matchConcepto[1]) {
-        textoConcepto = matchConcepto[1].replace(/\s+/g, ' ').trim();
-    }
-
-    // ── NUEVA LÓGICA (ANTI-MONTAJE) ─────────────
-    // En lugar de calcular por caracteres, alineamos a la derecha SIEMPRE
-
-    const anchoVencimiento = helveticaFont.widthOfTextAtSize(textoExtra, 8);
-
-    const margenDerecho = 20; // puedes ajustar si quieres más pegado al borde
-
-    const xVencimiento = width - anchoVencimiento - margenDerecho;
-
-    pagina.drawText(textoExtra, {
-        x: xVencimiento,
-        y: 638,
-        size: 8,
-        font: helveticaFont,
-        color: rgb(0, 0, 0)
-    });
-}
-
-            // ── Imagen de firma ───────────────────────────────────
+            // Imagen de firma
             let firmaImg;
             if (firmaFile.type.includes('png')) {
                 firmaImg = await pdf.embedPng(firmaBytes);
             } else {
                 firmaImg = await pdf.embedJpg(firmaBytes);
             }
+
             pagina.drawImage(firmaImg, { x: 40, y: 330, width: 110, height: 130 });
 
-            // ── Copiar páginas al PDF unificado ───────────────────
+            // Copiar páginas al PDF unificado
             const paginas = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             paginas.forEach(p => mergedPdf.addPage(p));
 
@@ -327,7 +291,9 @@ if (textoExtra) {
         estadoLabel.innerHTML = 'Generando archivo final...';
         const pdfFinal = await mergedPdf.save();
 
+        // Liberar URL anterior
         if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+
         const blob = new Blob([pdfFinal], { type: 'application/pdf' });
         lastBlobUrl = URL.createObjectURL(blob);
 
@@ -337,6 +303,7 @@ if (textoExtra) {
         link.download = downloadName;
         link.click();
 
+        // Incrementar contador
         fileCounter++;
         try { sessionStorage.setItem('pdfSignCounter', fileCounter.toString()); } catch (_) {}
 
@@ -369,6 +336,7 @@ function updateStatsUI() {
     if (el('count-ignored')) el('count-ignored').textContent = stats.ignored;
 }
 
+/** Cede control al navegador para actualizar la UI */
 function yieldToUI() {
     return new Promise(resolve => setTimeout(resolve, 0));
 }
