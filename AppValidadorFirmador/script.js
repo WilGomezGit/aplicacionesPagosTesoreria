@@ -302,7 +302,7 @@ async function startProcessing() {
                 const anchoEspacios = helveticaFont.widthOfTextAtSize('  ', size);
                 const anchoExtra    = helveticaFont.widthOfTextAtSize(textoExtra, size);
 
-                let xExtra = width - margenDerecho - anchoExtra;
+                let xExtra = width - margenDerecho - anchoExtra - 20;
 
                 const finConcepto = xInicioConcepto + anchoConcepto + anchoEspacios;
 
