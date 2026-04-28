@@ -280,18 +280,43 @@ pagina.drawText(comprobante, {
     color: rgb(0, 0, 0)
 });
 
-           // Texto extra / fecha vencimiento — posicionado justo después del concepto
+        // Texto extra / fecha vencimiento — posicionado después del concepto real del PDF
 if (textoExtra) {
-    // Misma fuente y tamaño que el comprobante para medir bien
-    const comprobanteFSize = fSize;          // ya calculado arriba
-    const comprobanteW = textW;              // ya calculado arriba (widthOfTextAtSize)
-    const espacioExtra = helveticaFont.widthOfTextAtSize('  ', comprobanteFSize); // 2 espacios
-    const xVencimiento = xCentrado + comprobanteW + espacioExtra;
+    // Usar pdf.js (ya cargado) para leer las posiciones del texto en la página
+    const pdfjsDoc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const pdfjsPage = await pdfjsDoc.getPage(1);
+    const tc = await pdfjsPage.getTextContent();
+    const vp = pdfjsPage.getViewport({ scale: 1 });
+
+    // Buscar el ítem de texto más a la derecha en la fila del Concepto
+    // El Concepto está aprox al 85-90% de la altura (y normalizada ~ 0.85–0.92)
+    // Filtramos los ítems que estén en esa franja vertical
+    const alturaRelMin = 0.82;
+    const alturaRelMax = 0.95;
+    let xFinalConcepto = 0;
+    let yConceptoPDF = 638; // valor por defecto si no se encuentra
+
+    for (const item of tc.items) {
+        const [, , , , tx, ty] = item.transform;
+        const yRel = ty / vp.height;
+        if (yRel >= alturaRelMin && yRel <= alturaRelMax) {
+            const xDerecha = tx + item.width;
+            if (xDerecha > xFinalConcepto) {
+                xFinalConcepto = xDerecha;
+                // Convertir Y de pdf.js (origen abajo-izq) a pdf-lib (mismo origen)
+                yConceptoPDF = ty;
+            }
+        }
+    }
+    await pdfjsDoc.destroy();
+
+    // Espacio de 2 caracteres con la fuente del vencimiento (size 8)
+    const espacioVenc = helveticaFont.widthOfTextAtSize('  ', 8);
 
     pagina.drawText(textoExtra, {
-        x: xVencimiento,
-        y: 80,                               // misma línea Y que el comprobante
-        size: comprobanteFSize,              // misma fuente para que quede alineado
+        x: xFinalConcepto + espacioVenc,
+        y: yConceptoPDF,
+        size: 8,                   // tamaño original
         font: helveticaFont,
         color: rgb(0, 0, 0)
     });
