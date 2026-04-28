@@ -281,44 +281,37 @@ async function startProcessing() {
             // ── Texto extra / fecha vencimiento ───────────────────
 // ── Texto extra / fecha vencimiento ───────────────────
 if (textoExtra) {
-    // Extraer todo el texto desde "Concepto:" hasta la siguiente sección
+    // Extraer el texto del Concepto del fullText
+    // (todo desde "Concepto:" hasta la siguiente sección conocida)
     const matchConcepto = fullText.match(
         /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
     );
 
-    let textoConceptoCompleto = '';
+    let textoConcepto = '';
     if (matchConcepto && matchConcepto[1]) {
-        textoConceptoCompleto = 'Concepto: ' + matchConcepto[1].replace(/\s+/g, ' ').trim();
+        textoConcepto = matchConcepto[1].replace(/\s+/g, ' ').trim();
     }
 
-    // Ancho promedio por carácter a size 8 en este PDF (ajustable)
-    const anchoPorCaracter = 4.5;
-    const xMargenIzquierdo = 20;
-    const xInicioContenido = 62; // donde empieza el texto DESPUÉS de "Concepto: "
-    const margenDerecho    = width - 10;
+    // ── CÁLCULO POR ANCHO REAL DEL TEXTO ─────────────
+    const xInicioTextoConcepto = 62;  // donde empieza el texto después de "Concepto:"
 
-    // Calcular X si va en la misma línea
-    const anchoConcepto    = textoConceptoCompleto.length * anchoPorCaracter;
-    const anchoVencimiento = textoExtra.length * anchoPorCaracter;
-    const dosEspacios      = 2 * anchoPorCaracter;
-    const xEnMismaLinea    = xMargenIzquierdo + anchoConcepto + dosEspacios;
+    // ancho REAL del texto del concepto
+    const anchoTextoConcepto = helveticaFont.widthOfTextAtSize(textoConcepto, 8);
 
-    let xVencimiento;
-    let yVencimiento;
+    // ancho REAL de dos espacios
+    const anchoDosEspacios = helveticaFont.widthOfTextAtSize('  ', 8);
 
-    if (xEnMismaLinea + anchoVencimiento <= margenDerecho) {
-        // ✅ Cabe en la misma línea → ponerlo después del concepto
-        xVencimiento = xEnMismaLinea;
-        yVencimiento = 638;
-    } else {
-        // ❌ No cabe → ponerlo en la línea de abajo alineado al contenido
-        xVencimiento = xInicioContenido;
-        yVencimiento = 628; // ~10 puntos abajo de la línea del concepto
+    let xVencimiento = xInicioTextoConcepto + anchoTextoConcepto + anchoDosEspacios;
+
+    // Seguridad: si se sale del ancho de página, ajustar al margen derecho
+    const anchoVencimiento = helveticaFont.widthOfTextAtSize(textoExtra, 8);
+    if (xVencimiento + anchoVencimiento > width - 10) {
+        xVencimiento = width - anchoVencimiento - 10;
     }
 
     pagina.drawText(textoExtra, {
         x: xVencimiento,
-        y: yVencimiento,
+        y: 638,
         size: 8,
         font: helveticaFont,
         color: rgb(0, 0, 0)
