@@ -264,12 +264,54 @@ async function startProcessing() {
                 x: width / 2 - 40, y: 80, size: 14, color: rgb(0, 0, 0)
             });
 
-            // Texto extra / fecha vencimiento
-            if (textoExtra) {
-                pagina.drawText(textoExtra, {
-                    x: 380, y: 638, size: 8, color: rgb(0, 0, 0)
-                });
-            }
+            // ── Texto extra / fecha vencimiento ───────────────────
+if (textoExtra) {
+    // Extraer el texto del Concepto del fullText
+    const matchConcepto = fullText.match(
+        /concepto[:\s]+([\s\S]+?)(?:cuenta\s+bancaria|valor\s+consignado|fecha\s+de\s+comprobante)/i
+    );
+
+    let textoConcepto = '';
+    if (matchConcepto && matchConcepto[1]) {
+        textoConcepto = matchConcepto[1].replace(/\s+/g, ' ').trim();
+    }
+
+    const size = 8;
+    const margenDerecho = 20;
+    const xInicioConcepto = 62; // donde empieza el texto después de "Concepto:"
+
+    // Anchos reales
+    const anchoConcepto = helveticaFont.widthOfTextAtSize(textoConcepto, size);
+    const anchoEspacios = helveticaFont.widthOfTextAtSize('  ', size);
+    const anchoVencimiento = helveticaFont.widthOfTextAtSize(textoExtra, size);
+
+    // Posición ideal (alineado a la derecha)
+    let xVencimiento = width - margenDerecho - anchoVencimiento;
+
+    // Posición donde termina el concepto
+    const finConcepto = xInicioConcepto + anchoConcepto + anchoEspacios;
+
+    // ── DECISIÓN INTELIGENTE ─────────────────────────
+    if (xVencimiento > finConcepto) {
+        // ✅ Cabe en la misma línea (no se monta)
+        pagina.drawText(textoExtra, {
+            x: xVencimiento,
+            y: 638,
+            size: size,
+            font: helveticaFont,
+            color: rgb(0, 0, 0)
+        });
+    } else {
+        // ❌ No cabe → lo bajamos a otra línea
+        pagina.drawText(textoExtra, {
+            x: xInicioConcepto,
+            y: 620, // debajo del concepto (ajusta si quieres)
+            size: size,
+            font: helveticaFont,
+            color: rgb(0, 0, 0)
+        });
+    }
+}
 
             // Imagen de firma
             let firmaImg;
